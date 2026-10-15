@@ -276,3 +276,34 @@ def test_e2e_contract_guard_fastapi(openapi_spec: dict) -> None:
     r5 = client.post("/_gk/api/rules/reload")
     assert r5.status_code == 200
     assert "contract_active" in r5.json()
+
+
+def test_contract_exempts_control_plane_routes(contract_mgr: ContractManager) -> None:
+    """Verify that Gatekeeper control plane paths are exempted from contract allow-listing."""
+    for path in ("/_gk", "/_gk/health", "/_gk/api/stats", "/_gk/static/app.js"):
+        ctx = RequestContext(
+            incident_id="TEST-CONTROL-EXEMPT",
+            client_ip="198.51.100.1",
+            method="GET",
+            path=path,
+        )
+        findings = contract_mgr.validate(ctx)
+        assert len(findings) == 0, f"Control plane path {path} should be exempted from contract checks"
+
+
+def test_contract_unknown_query_param_detection(openapi_spec: dict) -> None:
+    """Verify unknown query parameter handling with strict_extra_fields."""
+    config = GatewayConfig()
+    config.contract.strict_extra_fields = True
+    mgr = ContractManager(config=config, spec=openapi_spec)
+
+    ctx = RequestContext(
+        incident_id="TEST-EXTRA-PARAM",
+        client_ip="198.51.100.1",
+        method="GET",
+        path="/api/products",
+        query_params={"unknown_hacker_param": ["123"]},
+    )
+    findings = mgr.validate(ctx)
+    assert any(f.rule_id == "CONTRACT-UNKNOWN-PARAM" for f in findings)
+

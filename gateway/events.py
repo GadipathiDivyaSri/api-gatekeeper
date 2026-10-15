@@ -45,11 +45,12 @@ class EventStore:
 
     def _init_db(self) -> None:
         """Initialize SQLite database with WAL mode and schema."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=15.0)
         try:
             with conn:
                 conn.execute("PRAGMA journal_mode = WAL;")
                 conn.execute("PRAGMA synchronous = NORMAL;")
+                conn.execute("PRAGMA busy_timeout = 15000;")
                 conn.execute(
                     """
                     CREATE TABLE IF NOT EXISTS events (
@@ -114,9 +115,10 @@ class EventStore:
         Drains queue in batches every 250ms or up to 100 events,
         writing to SQLite and appending to JSONL.
         """
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=15.0)
         conn.execute("PRAGMA journal_mode = WAL;")
         conn.execute("PRAGMA synchronous = NORMAL;")
+        conn.execute("PRAGMA busy_timeout = 15000;")
 
         try:
             while self.running or not self.queue.empty():
@@ -215,8 +217,9 @@ class EventStore:
 
     def get_connection(self) -> sqlite3.Connection:
         """Return a read connection with row_factory set to sqlite3.Row."""
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, timeout=15.0)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout = 15000;")
         return conn
 
     def get_events(

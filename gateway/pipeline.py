@@ -34,6 +34,14 @@ def inspect(
     6. Risk scoring and action determination (allowed / flagged / blocked).
     """
     active_config = config or get_config()
+    if active_config.mode == "off":
+        return Decision(
+            action="allowed",
+            score=0,
+            findings=[],
+            status_code=200,
+            reason="Gateway inspection disabled (off mode)",
+        )
     active_rules = rules_manager or get_rule_manager()
 
     # 1. Ban Check (skip if ban_manager is explicitly None in dry-runs without ban tracking)

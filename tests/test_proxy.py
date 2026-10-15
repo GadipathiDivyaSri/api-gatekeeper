@@ -259,3 +259,56 @@ def test_health_check_endpoint():
             await upstream_down.aclose()
 
     run_async(_test())
+
+
+def test_proxy_x_forwarded_for_chaining():
+    """Verify that existing X-Forwarded-For headers are preserved and appended."""
+
+    async def _test():
+        client, state, upstream = create_test_client()
+        try:
+            resp = await client.get(
+                "/api/products",
+                headers={"x-forwarded-for": "203.0.113.195"},
+            )
+            assert resp.status_code == 200
+            assert len(state.received_requests) == 1
+            fwd_header = state.received_requests[0].headers.get("x-forwarded-for")
+            assert "203.0.113.195" in fwd_header
+        finally:
+            await client.aclose()
+            await upstream.aclose()
+
+    run_async(_test())
+
+
+def test_proxy_timeout_handling():
+    """Verify that upstream timeouts produce a clean 502 Bad Gateway response."""
+
+    class TimeoutUpstream:
+        def handler(self, request: httpx.Request) -> httpx.Response:
+            raise httpx.ReadTimeout("Read timed out from backend", request=request)
+
+    async def _test():
+        cfg = GatewayConfig(upstream_url="http://timeout-upstream.test")
+        app = create_app(cfg)
+        timeout_client = httpx.AsyncClient(
+            transport=httpx.MockTransport(TimeoutUpstream().handler),
+            base_url="http://timeout-upstream.test",
+        )
+        app.state.http_client = timeout_client
+
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://gateway.test",
+        ) as client:
+            resp = await client.get("/api/products")
+            assert resp.status_code == 502
+            data = resp.json()
+            assert "Bad Gateway" in data["error"]
+            assert "incident_id" in data
+
+        await timeout_client.aclose()
+
+    run_async(_test())
+

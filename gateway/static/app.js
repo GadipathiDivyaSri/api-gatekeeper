@@ -362,16 +362,37 @@
     addBlock('Performance', `Gateway: ${event.latency_ms || 0}ms | Upstream: ${event.upstream_ms || 0}ms | Reached Backend: ${event.reached_backend ? 'YES' : 'NO'}`);
 
     dom.drawerOverlay.classList.add('active');
+    dom.drawerOverlay.setAttribute('aria-hidden', 'false');
     dom.drawer.classList.add('active');
+    dom.drawer.setAttribute('aria-hidden', 'false');
+    if (dom.drawerCloseBtn) {
+      dom.drawerCloseBtn.focus();
+    }
   }
 
   function closeDrawer() {
     dom.drawerOverlay.classList.remove('active');
+    dom.drawerOverlay.setAttribute('aria-hidden', 'true');
     dom.drawer.classList.remove('active');
+    dom.drawer.setAttribute('aria-hidden', 'true');
   }
 
   dom.drawerCloseBtn.addEventListener('click', closeDrawer);
   dom.drawerOverlay.addEventListener('click', closeDrawer);
+
+  // Keyboard accessibility: Escape closes drawer, '/' focuses rule search
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (dom.drawer.classList.contains('active')) {
+        closeDrawer();
+      }
+    } else if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      if (dom.ruleSearchInput) {
+        dom.ruleSearchInput.focus();
+      }
+    }
+  });
 
   // ---------------------------------------------------------------------------
   // Tables: Top Attackers & Active Bans

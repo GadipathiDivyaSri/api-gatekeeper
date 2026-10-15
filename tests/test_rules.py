@@ -219,3 +219,55 @@ def test_rule_toggle_and_reload():
     count = manager.reload()
     assert count == 16
     assert manager.get_rule("SQLI-001").enabled is True
+
+
+def test_rule_matching_case_insensitivity():
+    """Verify that signature matching is case-insensitive for evasive attackers."""
+    manager = RuleManager("config/rules.yaml")
+
+    # Mixed-case SQLi
+    variants_sqli = {"query": [Variant(text="1' UnIoN aLl SeLeCt 1,2,3--", chain=["raw"])]}
+    findings_sqli = manager.match(variants_sqli)
+    assert any(f.rule_id == "SQLI-001" for f in findings_sqli)
+
+    # Mixed-case XSS
+    variants_xss = {"body": [Variant(text="<sCrIpT>alert(1)</sCrIpT>", chain=["raw"])]}
+    findings_xss = manager.match(variants_xss)
+    assert any(f.rule_id == "XSS-001" for f in findings_xss)
+
+    # Mixed-case CMDi
+    variants_cmdi = {"body": [Variant(text="; cAt /EtC/pAsSwD", chain=["raw"])]}
+    findings_cmdi = manager.match(variants_cmdi)
+    assert any(f.rule_id == "CMDI-001" for f in findings_cmdi)
+
+
+def test_rule_manager_invalid_regex_handling(tmp_path):
+    """Verify that broken or uncompilable regexes are gracefully skipped without crashing."""
+    broken_yaml = tmp_path / "broken_rules.yaml"
+    broken_yaml.write_text(
+        """
+rules:
+  - id: BAD-REGEX-001
+    name: Broken regex rule
+    category: sqli
+    pattern: "(?i)[a-z"  # Unterminated character set
+    targets: [query]
+    score: 5
+    severity: critical
+  - id: GOOD-RULE-001
+    name: Good rule
+    category: sqli
+    pattern: "(?i)test_valid_pattern"
+    targets: [query]
+    score: 3
+    severity: low
+""",
+        encoding="utf-8",
+    )
+
+    mgr = RuleManager(rules_path=broken_yaml)
+    rules = mgr.get_rules()
+    # Faulty rule skipped, valid rule loaded
+    assert len(rules) == 1
+    assert rules[0].id == "GOOD-RULE-001"
+

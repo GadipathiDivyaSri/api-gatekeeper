@@ -9,10 +9,13 @@
 </head>
 <body>
 
+  <!-- Accessible Skip Navigation Link -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
   <!-- Top Bar / Command Navigation -->
-  <header class="top-bar">
+  <header class="top-bar" role="banner">
     <div class="brand-section">
-      <div class="logo-shield">
+      <div class="logo-shield" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V6.3l7-3.12zM12 6a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V7a1 1 0 0 0-1-1zm0 8a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 12 14z"/></svg>
       </div>
       <div class="brand-text">
@@ -22,23 +25,23 @@
     </div>
 
     <div class="header-controls">
-      <div class="status-indicator">
+      <div class="status-indicator" role="status" aria-live="polite">
         <div id="connection-dot" class="status-dot"></div>
         <span id="connection-text">CONNECTING...</span>
       </div>
 
-      <button id="mode-btn" class="mode-toggle-btn" title="Toggle between Block and Monitor mode">
+      <button id="mode-btn" class="mode-toggle-btn" aria-label="Toggle gateway defense mode, currently BLOCK" title="Toggle between Block and Monitor mode">
         MODE: <span id="mode-label">BLOCK</span>
       </button>
 
-      <div class="btn-group">
-        <button id="btn-simulate" class="btn btn-primary" title="Trigger Attack Simulator">
+      <div class="btn-group" role="group" aria-label="Gateway Actions">
+        <button id="btn-simulate" class="btn btn-primary" aria-label="Trigger Attack Simulator" title="Trigger Attack Simulator">
           ⚡ Run Simulator
         </button>
-        <button id="btn-scorecard" class="btn" title="Run Benchmark Scorecard">
+        <button id="btn-scorecard" class="btn" aria-label="Run Benchmark Scorecard" title="Run Benchmark Scorecard">
           📊 Run Scorecard
         </button>
-        <a id="btn-export-csv" class="btn" href="/_gk/api/export.csv" download="gatekeeper_events.csv" title="Download Audit CSV">
+        <a id="btn-export-csv" class="btn" href="/_gk/api/export.csv" download="gatekeeper_events.csv" aria-label="Download Security Audit CSV" title="Download Audit CSV">
           📥 Export CSV
         </a>
       </div>
@@ -46,7 +49,7 @@
   </header>
 
   <!-- Dashboard Main Container -->
-  <main class="dashboard-container">
+  <main class="dashboard-container" id="main-content" role="main">
 
     <!-- 1. KPI Metric Cards (8 cards) -->
     <section class="kpi-grid">
@@ -156,14 +159,14 @@
     </section>
 
     <!-- 3. Main Grid: Live Feed & Intelligence -->
-    <section class="main-grid">
+    <section class="main-grid" aria-label="Live Security Intelligence">
       <!-- Left Column: Live Attack Feed -->
       <div class="panel">
         <div class="panel-header">
           <h2 class="panel-title">⚡ Live Security Event Stream</h2>
           <span style="font-size: 0.75rem; color: var(--text-dim);" id="feed-count">Showing latest events</span>
         </div>
-        <div id="attack-feed" class="feed-list">
+        <div id="attack-feed" class="feed-list" role="region" aria-label="Live Security Event Stream" aria-live="polite">
           <!-- Feed items injected dynamically -->
           <div style="text-align: center; color: var(--text-dim); padding: 2rem;">Awaiting incoming requests...</div>
         </div>
@@ -180,10 +183,10 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>IP Address</th>
-                <th>Attacks</th>
-                <th>Categories</th>
-                <th>Last Seen</th>
+                <th scope="col">IP Address</th>
+                <th scope="col">Attacks</th>
+                <th scope="col">Categories</th>
+                <th scope="col">Last Seen</th>
               </tr>
             </thead>
             <tbody id="attackers-tbody">
@@ -201,10 +204,10 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>IP Address</th>
-                <th>Reason</th>
-                <th>Remaining</th>
-                <th>Action</th>
+                <th scope="col">IP Address</th>
+                <th scope="col">Reason</th>
+                <th scope="col">Remaining</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody id="bans-tbody">
@@ -217,9 +220,9 @@
     </section>
 
     <!-- 4. Interactive Payload Tester (Dry-Run Inspection) -->
-    <section class="panel">
+    <section class="panel" aria-labelledby="tester-heading">
       <div class="panel-header">
-        <h2 class="panel-title">🧪 Interactive Payload Tester (Dry-Run Inspection)</h2>
+        <h2 class="panel-title" id="tester-heading">🧪 Interactive Payload Tester (Dry-Run Inspection)</h2>
         <span style="font-size: 0.75rem; color: var(--text-dim);">Pure inspection • Never forwarded</span>
       </div>
 
@@ -228,14 +231,14 @@
           <div class="form-group">
             <label for="test-method">HTTP Method & Path</label>
             <div class="input-row">
-              <select id="test-method" class="select-field" style="width: 100px;">
+              <select id="test-method" class="select-field" style="width: 100px;" aria-label="HTTP Method">
                 <option value="GET">GET</option>
                 <option value="POST">POST</option>
                 <option value="PUT">PUT</option>
                 <option value="DELETE">DELETE</option>
                 <option value="PATCH">PATCH</option>
               </select>
-              <input type="text" id="test-path" class="input-field" style="flex: 1;" value="/api/products" placeholder="/api/products">
+              <input type="text" id="test-path" class="input-field" style="flex: 1;" value="/api/products" placeholder="/api/products" aria-label="Request Path">
             </div>
           </div>
 
@@ -254,28 +257,31 @@
             <textarea id="test-body" class="textarea-field" placeholder='{"$ne": 1, "comment": "<script>alert(1)</script>"}'></textarea>
           </div>
 
-          <button id="btn-inspect-test" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;">
+          <button id="btn-inspect-test" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;" aria-label="Inspect Payload in dry-run mode">
             🔍 Inspect Payload
           </button>
         </form>
 
         <!-- Test Results Area -->
-        <div id="test-results" class="test-results">
+        <div id="test-results" class="test-results" role="region" aria-label="Test Inspection Results" aria-live="polite">
           <div style="color: var(--text-dim); text-align: center; padding-top: 2rem;">
             Run a test to inspect decision, score, matched rules, and multi-decode chains.
           </div>
         </div>
       </div>
+    </section>
+
     <!-- 5. Signature Rules & Policy Controls Panel -->
-    <section class="panel" id="rules-panel" style="margin-top: 1.5rem;">
+    <section class="panel" id="rules-panel" style="margin-top: 1.5rem;" aria-labelledby="rules-heading">
       <div class="panel-header">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <h2 class="panel-title">🛡️ Signature Rules & Policy Controls</h2>
+          <h2 class="panel-title" id="rules-heading">🛡️ Signature Rules & Policy Controls</h2>
           <span id="rules-count-badge" class="badge badge-cyan">0 RULES</span>
         </div>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <input type="text" id="rule-search-input" class="input-field" style="padding: 6px 12px; font-size: 0.8rem; width: 220px;" placeholder="Filter rules by name or category...">
-          <button id="btn-reload-rules" class="btn" title="Reload rules from config/rules.yaml and refresh OpenAPI spec">
+          <label for="rule-search-input" class="sr-only">Filter signature rules</label>
+          <input type="text" id="rule-search-input" class="input-field" style="padding: 6px 12px; font-size: 0.8rem; width: 220px;" placeholder="Filter rules by name or category..." aria-label="Filter signature rules">
+          <button id="btn-reload-rules" class="btn" title="Reload rules from config/rules.yaml and refresh OpenAPI spec" aria-label="Hot reload signature rules">
             🔄 Hot Reload Rules
           </button>
         </div>
@@ -284,12 +290,12 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th style="width: 140px;">Rule ID</th>
-              <th>Rule Name</th>
-              <th style="width: 110px;">Category</th>
-              <th style="width: 70px;">Score</th>
-              <th style="width: 90px;">Severity</th>
-              <th style="width: 100px; text-align: center;">Policy State</th>
+              <th scope="col" style="width: 140px;">Rule ID</th>
+              <th scope="col">Rule Name</th>
+              <th scope="col" style="width: 110px;">Category</th>
+              <th scope="col" style="width: 70px;">Score</th>
+              <th scope="col" style="width: 90px;">Severity</th>
+              <th scope="col" style="width: 100px; text-align: center;">Policy State</th>
             </tr>
           </thead>
           <tbody id="rules-tbody">
@@ -302,11 +308,11 @@
   </main>
 
   <!-- Slide-Out Forensic Incident Drawer -->
-  <div id="drawer-overlay" class="drawer-overlay"></div>
-  <aside id="incident-drawer" class="drawer">
+  <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
+  <aside id="incident-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
     <div class="drawer-header">
-      <h3 style="font-size: 1rem; font-weight: 700; color: var(--accent-cyan);">INCIDENT FORENSICS</h3>
-      <button id="drawer-close-btn" class="drawer-close">&times;</button>
+      <h3 id="drawer-title" style="font-size: 1rem; font-weight: 700; color: var(--accent-cyan);">INCIDENT FORENSICS</h3>
+      <button id="drawer-close-btn" class="drawer-close" aria-label="Close incident forensics drawer">&times;</button>
     </div>
     <div id="drawer-content" class="drawer-content">
       <!-- Injected dynamically -->
@@ -314,7 +320,7 @@
   </aside>
 
   <!-- Toast Notifications Container -->
-  <div id="toast-container" class="toast-container"></div>
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Application Logic -->
   <script src="/_gk/static/app.js"></script>

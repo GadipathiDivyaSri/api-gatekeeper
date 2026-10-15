@@ -60,7 +60,11 @@ def resolve_client_ip(request: Request, ip_source: str) -> str:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage HTTP client lifecycle, rules precompilation, and event store batch worker."""
-    client = httpx.AsyncClient(timeout=10.0, follow_redirects=False)
+    client = httpx.AsyncClient(
+        timeout=10.0,
+        follow_redirects=False,
+        limits=httpx.Limits(max_keepalive_connections=100, max_connections=200, keepalive_expiry=30.0),
+    )
     app.state.http_client = client
     app.state.rule_manager = get_rule_manager()
     app.state.rate_limiter = get_rate_limiter(app.state.config)
@@ -110,7 +114,11 @@ def create_app(
     app.state.ws_manager = active_ws
     app.state.event_store = active_events
     if not hasattr(app.state, "http_client"):
-        app.state.http_client = httpx.AsyncClient(timeout=10.0, follow_redirects=False)
+        app.state.http_client = httpx.AsyncClient(
+            timeout=10.0,
+            follow_redirects=False,
+            limits=httpx.Limits(max_keepalive_connections=100, max_connections=200, keepalive_expiry=30.0),
+        )
 
     # -------------------------------------------------------------------------
     # Mount Control Plane Admin Router (/_gk/api/*)

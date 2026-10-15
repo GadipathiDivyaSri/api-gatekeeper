@@ -24,17 +24,17 @@ from backend.seed import get_db_path, hash_password, seed_database, verify_passw
 
 
 class HealthResponse(BaseModel):
-    status: str = Field(..., example="healthy")
-    service: str = Field(..., example="DemoShop")
-    version: str = Field(..., example="1.0.0")
+    status: str = Field(..., json_schema_extra={"example": "healthy"})
+    service: str = Field(..., json_schema_extra={"example": "DemoShop"})
+    version: str = Field(..., json_schema_extra={"example": "1.0.0"})
 
 
 class ProductResponse(BaseModel):
-    id: int = Field(..., example=1)
-    name: str = Field(..., example="Smartphone X")
-    category: str = Field(..., example="electronics")
-    price: float = Field(..., example=799.99)
-    stock: int = Field(..., example=45)
+    id: int = Field(..., json_schema_extra={"example": 1})
+    name: str = Field(..., json_schema_extra={"example": "Smartphone X"})
+    category: str = Field(..., json_schema_extra={"example": "electronics"})
+    price: float = Field(..., json_schema_extra={"example": 799.99})
+    stock: int = Field(..., json_schema_extra={"example": 45})
 
 
 class LoginRequest(BaseModel):
@@ -58,10 +58,10 @@ class RegisterRequest(BaseModel):
 
 
 class RegisterResponse(BaseModel):
-    message: str = Field(..., example="User registered successfully")
-    username: str = Field(..., example="newuser")
-    email: str = Field(..., example="newuser@demoshop.test")
-    role: str = Field(..., example="customer")
+    message: str = Field(..., json_schema_extra={"example": "User registered successfully"})
+    username: str = Field(..., json_schema_extra={"example": "newuser"})
+    email: str = Field(..., json_schema_extra={"example": "newuser@demoshop.test"})
+    role: str = Field(..., json_schema_extra={"example": "customer"})
 
 
 class FeedbackRequest(BaseModel):
@@ -77,27 +77,27 @@ class FeedbackResponse(BaseModel):
 
 
 class OrderItem(BaseModel):
-    product_id: int = Field(..., example=1)
-    name: str = Field(..., example="Smartphone X")
-    quantity: int = Field(..., example=1)
-    price: float = Field(..., example=799.99)
+    product_id: int = Field(..., json_schema_extra={"example": 1})
+    name: str = Field(..., json_schema_extra={"example": "Smartphone X"})
+    quantity: int = Field(..., json_schema_extra={"example": 1})
+    price: float = Field(..., json_schema_extra={"example": 799.99})
 
 
 class ShippingAddress(BaseModel):
-    street: str = Field(..., example="100 Innovation Way")
-    city: str = Field(..., example="Cyber City")
-    country: str = Field(..., example="IN")
-    postal_code: str = Field(..., example="560001")
+    street: str = Field(..., json_schema_extra={"example": "100 Innovation Way"})
+    city: str = Field(..., json_schema_extra={"example": "Cyber City"})
+    country: str = Field(..., json_schema_extra={"example": "IN"})
+    postal_code: str = Field(..., json_schema_extra={"example": "560001"})
 
 
 class OrderResponse(BaseModel):
-    order_id: int = Field(..., example=101)
-    status: str = Field(..., example="shipped")
-    customer: str = Field(..., example="alice@demoshop.test")
+    order_id: int = Field(..., json_schema_extra={"example": 101})
+    status: str = Field(..., json_schema_extra={"example": "shipped"})
+    customer: str = Field(..., json_schema_extra={"example": "alice@demoshop.test"})
     items: list[OrderItem]
-    total: float = Field(..., example=999.98)
+    total: float = Field(..., json_schema_extra={"example": 999.98})
     shipping_address: ShippingAddress
-    tracking_number: str = Field(..., example="TRK-101-98765")
+    tracking_number: str = Field(..., json_schema_extra={"example": "TRK-101-98765"})
 
 
 # -----------------------------------------------------------------------------
@@ -124,8 +124,9 @@ app = FastAPI(
 
 def get_db() -> Generator[sqlite3.Connection, None, None]:
     """Provide a database connection per request with Row factory."""
-    conn = sqlite3.connect(get_db_path())
+    conn = sqlite3.connect(get_db_path(), timeout=15.0)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 15000;")
     try:
         yield conn
     finally:

@@ -140,3 +140,58 @@ def test_build_targets_extraction():
 
     assert "ua" in targets
     assert any("sqlmap/1.5" in v.text for v in targets["ua"])
+
+
+def test_null_byte_and_bom_stripping():
+    """Verify that null bytes (both raw and URL-encoded) and unicode BOM are stripped."""
+    # 1. Raw null byte
+    raw_null = "admin\x00' OR '1'='1"
+    variants = normalize_string(raw_null)
+    texts = [v.text for v in variants]
+    assert "admin' OR '1'='1" in texts
+    assert any("strip_null" in v.chain for v in variants)
+
+    # 2. URL-encoded null byte (%00)
+    url_null = "test%00<script>"
+    variants_url = normalize_string(url_null)
+    texts_url = [v.text for v in variants_url]
+    assert "test<script>" in texts_url
+
+    # 3. Unicode Byte Order Mark (BOM)
+    bom_str = "\ufeffSELECT * FROM users"
+    variants_bom = normalize_string(bom_str)
+    texts_bom = [v.text for v in variants_bom]
+    assert "SELECT * FROM users" in texts_bom
+
+
+def test_deeply_nested_json_recursion_guard():
+    """Verify that pathological deeply nested JSON structures do not trigger RecursionError."""
+    # Build 50-level nested dict
+    curr = {"leaf": "target_value"}
+    for i in range(50):
+        curr = {f"nest_{i}": curr}
+
+    # Should not raise RecursionError and stop gracefully
+    flattened = flatten_json(curr, max_depth=32)
+    assert len(flattened) > 0
+    # The depth should not exceed 32
+    assert len(flattened) <= 64
+
+
+def test_unicode_nfkc_homoglyphs():
+    """Verify that NFKC decomposes fullwidth and compatibility Unicode characters."""
+    # Fullwidth '<script>': ＜ｓｃｒｉｐｔ＞
+    fullwidth_xss = "\uff1c\uff53\uff43\uff52\uff49\uff50\uff54\uff1e"
+    variants = normalize_string(fullwidth_xss)
+    texts = [v.text for v in variants]
+    assert "<script>" in texts
+    variant_nfkc = next(v for v in variants if v.text == "<script>")
+    assert "nfkc_normalize" in variant_nfkc.chain
+
+
+def test_oversized_token_handling():
+    """Verify that large inputs do not cause CPU DoS or blow up base64 scanning."""
+    large_payload = "A" * 20000 + "PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
+    variants = normalize_string(large_payload)
+    assert len(variants) >= 1
+

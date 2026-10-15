@@ -28,10 +28,15 @@ class Variant:
 
 # Selective Base64 pattern: minimum 12 chars of base64 alphabet, optional 1-2 '=' paddings
 BASE64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/_\-]{12,}={0,2}")
+SQL_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
+WHITESPACE_RUN_RE = re.compile(r"\s+")
 
 
 def try_decode_base64(token: str) -> str | None:
     """Decode token if it is valid Base64 and yields >=80% printable ASCII."""
+    if len(token) > 4096:
+        token = token[:4096]
+
     # Normalize URL-safe Base64
     normalized = token.replace("-", "+").replace("_", "/")
     missing_padding = len(normalized) % 4
@@ -81,24 +86,26 @@ def normalize_string(raw: str) -> list[Variant]:
         prev = curr
 
         # 1. URL decode
-        try:
-            unquoted = urllib.parse.unquote_plus(curr)
-            if unquoted != curr:
-                curr = unquoted
-                if "url_decode" not in applied_steps:
-                    applied_steps.append("url_decode")
-        except Exception:
-            pass
+        if "%" in curr or "+" in curr:
+            try:
+                unquoted = urllib.parse.unquote_plus(curr)
+                if unquoted != curr:
+                    curr = unquoted
+                    if "url_decode" not in applied_steps:
+                        applied_steps.append("url_decode")
+            except Exception:
+                pass
 
         # 2. HTML entity unescape
-        try:
-            unescaped = html.unescape(curr)
-            if unescaped != curr:
-                curr = unescaped
-                if "html_unescape" not in applied_steps:
-                    applied_steps.append("html_unescape")
-        except Exception:
-            pass
+        if "&" in curr:
+            try:
+                unescaped = html.unescape(curr)
+                if unescaped != curr:
+                    curr = unescaped
+                    if "html_unescape" not in applied_steps:
+                        applied_steps.append("html_unescape")
+            except Exception:
+                pass
 
         # 3. Unicode NFKC normalization
         try:
@@ -110,9 +117,9 @@ def normalize_string(raw: str) -> list[Variant]:
         except Exception:
             pass
 
-        # 4. Strip null bytes
-        if "\x00" in curr:
-            curr = curr.replace("\x00", "")
+        # 4. Strip null bytes and non-characters
+        if "\x00" in curr or "\ufeff" in curr:
+            curr = curr.replace("\x00", "").replace("\ufeff", "")
             if "strip_null" not in applied_steps:
                 applied_steps.append("strip_null")
 
@@ -120,23 +127,26 @@ def normalize_string(raw: str) -> list[Variant]:
             break
 
     # Collapse SQL inline comments /**/ to space
-    collapsed_comments = re.sub(r"/\*.*?\*/", " ", curr)
-    if collapsed_comments != curr:
-        applied_steps.append("collapse_comments")
-        curr = collapsed_comments
+    if "/*" in curr:
+        collapsed_comments = SQL_COMMENT_RE.sub(" ", curr)
+        if collapsed_comments != curr:
+            applied_steps.append("collapse_comments")
+            curr = collapsed_comments
 
     # Collapse whitespace runs to a single space
-    collapsed_ws = re.sub(r"\s+", " ", curr)
-    if collapsed_ws != curr:
-        applied_steps.append("collapse_whitespace")
-        curr = collapsed_ws
+    if "  " in curr or "\t" in curr or "\n" in curr or "\r" in curr:
+        collapsed_ws = WHITESPACE_RUN_RE.sub(" ", curr)
+        if collapsed_ws != curr:
+            applied_steps.append("collapse_whitespace")
+            curr = collapsed_ws
 
     if curr not in seen_texts:
         variants.append(Variant(text=curr, chain=list(applied_steps)))
         seen_texts.add(curr)
 
-    # Base64 inspection
-    for match in BASE64_TOKEN_RE.finditer(raw):
+    # Base64 inspection (bounded search over first 10,000 chars)
+    search_target = raw[:10000]
+    for match in BASE64_TOKEN_RE.finditer(search_target):
         token = match.group(0)
         decoded_text = try_decode_base64(token)
         if decoded_text and decoded_text not in seen_texts:
@@ -159,24 +169,47 @@ def normalize_string(raw: str) -> list[Variant]:
     return variants
 
 
-def flatten_json(data: Any, prefix: str = "") -> list[tuple[str, str]]:
+def flatten_json(
+    data: Any,
+    prefix: str = "",
+    max_depth: int = 32,
+    current_depth: int = 0,
+) -> list[tuple[str, str]]:
     """
     Recursively flatten JSON structure into (type, text) pairs.
     Inspects BOTH keys and primitive values.
+    Includes max_depth guard against recursion exhaustion attacks.
     """
     items: list[tuple[str, str]] = []
+    if current_depth >= max_depth:
+        return items
+
     if isinstance(data, dict):
         for k, v in data.items():
             k_str = str(k)
             items.append(("key", k_str))
             if isinstance(v, (dict, list)):
-                items.extend(flatten_json(v, prefix=f"{prefix}{k_str}."))
+                items.extend(
+                    flatten_json(
+                        v,
+                        prefix=f"{prefix}{k_str}.",
+                        max_depth=max_depth,
+                        current_depth=current_depth + 1,
+                    )
+                )
             else:
                 items.append(("value", str(v) if v is not None else ""))
     elif isinstance(data, list):
         for idx, elem in enumerate(data):
             if isinstance(elem, (dict, list)):
-                items.extend(flatten_json(elem, prefix=f"{prefix}[{idx}]."))
+                items.extend(
+                    flatten_json(
+                        elem,
+                        prefix=f"{prefix}[{idx}].",
+                        max_depth=max_depth,
+                        current_depth=current_depth + 1,
+                    )
+                )
             else:
                 items.append(("value", str(elem) if elem is not None else ""))
     return items

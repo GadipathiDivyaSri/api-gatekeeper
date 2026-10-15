@@ -272,3 +272,47 @@ def test_e2e_rate_limit_and_ban_pipeline():
         await app.state.http_client.aclose()
 
     run_async(_test())
+
+
+def test_token_bucket_peek_does_not_consume():
+    """Verify that peek() returns availability without consuming any tokens."""
+    bucket = TokenBucket(capacity=2, refill_per_sec=0.0)
+    allowed, retry = bucket.peek()
+    assert allowed is True
+    assert retry == 0.0
+
+    # Bucket still has full tokens
+    allowed1, _ = bucket.consume()
+    assert allowed1 is True
+    allowed2, _ = bucket.consume()
+    assert allowed2 is True
+    # Now empty
+    allowed3, _ = bucket.consume()
+    assert allowed3 is False
+
+
+def test_lazy_expiration_pruning_and_unban():
+    """Verify lazy pruning of expired bans and manual unban restoration."""
+    clock = FakeClock()
+    cfg = GatewayConfig()
+    cfg.strikes.ban_threshold = 2
+    cfg.strikes.ban_sec = 30
+    ban_mgr = BanManager(config=cfg, clock=clock.time)
+
+    ip = "198.51.100.88"
+    ban_mgr.add_strike(ip, count=2)
+    is_b, _ = ban_mgr.is_banned(ip)
+    assert is_b is True
+
+    # Active bans list contains the entry
+    active = ban_mgr.list_bans()
+    assert any(b["ip"] == ip for b in active)
+
+    # Advance clock past ban duration (35s)
+    clock.advance(35.0)
+
+    # Check is_banned should now report False and prune the ban
+    is_b_after, _ = ban_mgr.is_banned(ip)
+    assert is_b_after is False
+    assert len(ban_mgr.list_bans()) == 0
+
