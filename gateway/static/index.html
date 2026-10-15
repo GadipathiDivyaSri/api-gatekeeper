@@ -48,7 +48,7 @@
   <!-- Dashboard Main Container -->
   <main class="dashboard-container">
 
-    <!-- 1. KPI Metric Cards (7 cards) -->
+    <!-- 1. KPI Metric Cards (8 cards) -->
     <section class="kpi-grid">
       <div class="kpi-card" id="kpi-total">
         <span class="kpi-title">Total Requests</span>
@@ -74,6 +74,12 @@
         <span class="kpi-sub">Forwarded clean traffic</span>
       </div>
 
+      <div class="kpi-card purple" id="kpi-reached-backend">
+        <span class="kpi-title">Reached Backend</span>
+        <span class="kpi-value" id="val-reached-backend">0</span>
+        <span class="kpi-sub">Forwarded upstream</span>
+      </div>
+
       <div class="kpi-card" id="kpi-attackers">
         <span class="kpi-title">Unique Attackers</span>
         <span class="kpi-value" id="val-attackers">0</span>
@@ -90,6 +96,40 @@
         <span class="kpi-title">p95 Latency</span>
         <span class="kpi-value" id="val-latency">0.0<span style="font-size: 1rem;">ms</span></span>
         <span class="kpi-sub">p50: <span id="val-latency-p50">0.0</span>ms</span>
+      </div>
+    </section>
+
+    <!-- Mode Comparison Before/After Banner (Last 60 seconds) -->
+    <section id="mode-comparison-banner" class="mode-comparison-banner block-mode">
+      <div class="banner-mode-header">
+        <div class="banner-pill" id="banner-mode-pill">
+          <span class="pulse-dot"></span>
+          <span id="banner-mode-text">BLOCK MODE ACTIVE</span>
+        </div>
+        <span class="banner-window-tag">Rolling 60s Traffic Window</span>
+      </div>
+
+      <div class="banner-stats-row">
+        <div class="banner-stat-box">
+          <span class="stat-number" id="banner-total-60s">0</span>
+          <span class="stat-label">Total Ingress (60s)</span>
+        </div>
+        <div class="banner-stat-box blocked">
+          <span class="stat-number text-red" id="banner-blocked-60s">0</span>
+          <span class="stat-label">Blocked at Perimeter</span>
+        </div>
+        <div class="banner-stat-box flagged">
+          <span class="stat-number text-yellow" id="banner-flagged-60s">0</span>
+          <span class="stat-label">Flagged (Monitor)</span>
+        </div>
+        <div class="banner-stat-box reached">
+          <span class="stat-number text-cyan" id="banner-reached-60s">0</span>
+          <span class="stat-label">Reached Backend (60s)</span>
+        </div>
+      </div>
+
+      <div class="banner-insight" id="banner-insight-text">
+        🛡️ <strong>Perimeter Defense Enforced:</strong> All attacks meeting threat score threshold are intercepted at the gateway (HTTP 403) and dropped before reaching DemoShop.
       </div>
     </section>
 
@@ -226,6 +266,37 @@
           </div>
         </div>
       </div>
+    <!-- 5. Signature Rules & Policy Controls Panel -->
+    <section class="panel" id="rules-panel" style="margin-top: 1.5rem;">
+      <div class="panel-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h2 class="panel-title">🛡️ Signature Rules & Policy Controls</h2>
+          <span id="rules-count-badge" class="badge badge-cyan">0 RULES</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <input type="text" id="rule-search-input" class="input-field" style="padding: 6px 12px; font-size: 0.8rem; width: 220px;" placeholder="Filter rules by name or category...">
+          <button id="btn-reload-rules" class="btn" title="Reload rules from config/rules.yaml and refresh OpenAPI spec">
+            🔄 Hot Reload Rules
+          </button>
+        </div>
+      </div>
+      <div class="rules-table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">Rule ID</th>
+              <th>Rule Name</th>
+              <th style="width: 110px;">Category</th>
+              <th style="width: 70px;">Score</th>
+              <th style="width: 90px;">Severity</th>
+              <th style="width: 100px; text-align: center;">Policy State</th>
+            </tr>
+          </thead>
+          <tbody id="rules-tbody">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">Loading signature rules...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </main>
@@ -241,6 +312,9 @@
       <!-- Injected dynamically -->
     </div>
   </aside>
+
+  <!-- Toast Notifications Container -->
+  <div id="toast-container" class="toast-container"></div>
 
   <!-- Application Logic -->
   <script src="/_gk/static/app.js"></script>

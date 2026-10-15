@@ -58,6 +58,21 @@
     valLatencyP50: document.getElementById('val-latency-p50'),
     feedList: document.getElementById('attack-feed'),
     feedCount: document.getElementById('feed-count'),
+    valReachedBackend: document.getElementById('val-reached-backend'),
+    bannerModeBanner: document.getElementById('mode-comparison-banner'),
+    bannerModePill: document.getElementById('banner-mode-pill'),
+    bannerModeText: document.getElementById('banner-mode-text'),
+    bannerTotal60s: document.getElementById('banner-total-60s'),
+    bannerBlocked60s: document.getElementById('banner-blocked-60s'),
+    bannerFlagged60s: document.getElementById('banner-flagged-60s'),
+    bannerReached60s: document.getElementById('banner-reached-60s'),
+    bannerInsightText: document.getElementById('banner-insight-text'),
+    rulesPanel: document.getElementById('rules-panel'),
+    rulesTbody: document.getElementById('rules-tbody'),
+    rulesCountBadge: document.getElementById('rules-count-badge'),
+    ruleSearchInput: document.getElementById('rule-search-input'),
+    btnReloadRules: document.getElementById('btn-reload-rules'),
+    toastContainer: document.getElementById('toast-container'),
     attackersTbody: document.getElementById('attackers-tbody'),
     bansTbody: document.getElementById('bans-tbody'),
     bansBadge: document.getElementById('bans-badge'),
@@ -162,6 +177,9 @@
     dom.valBans.textContent = stats.banned_requests || 0;
     dom.valLatency.innerHTML = `${stats.latency_p95_ms || 0.0}<span style="font-size: 1rem;">ms</span>`;
     dom.valLatencyP50.textContent = stats.latency_p50_ms || 0.0;
+    if (dom.valReachedBackend) {
+      dom.valReachedBackend.textContent = stats.reached_backend_count || 0;
+    }
 
     // Update Category Chart
     if (state.categoryChart && stats.by_category) {
@@ -496,45 +514,231 @@
     }
   }
 
-  async function loadMode() {
-    try {
-      const data = await apiFetch('/_gk/api/mode');
-      state.mode = (data.mode || 'block').toLowerCase();
-      dom.modeLabel.textContent = state.mode.toUpperCase();
-      if (state.mode === 'monitor') {
-        dom.modeBtn.classList.add('monitor');
+  // ---------------------------------------------------------------------------
+  // Toast Notifications Helper
+  // ---------------------------------------------------------------------------
+  function showToast(message, type = 'info') {
+    if (!dom.toastContainer) return;
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    const icon = type === 'success' ? '✅' : type === 'warning' ? '⚠️' : type === 'error' ? '❌' : 'ℹ️';
+    toast.innerHTML = `<span style="font-size: 1.1rem;">${icon}</span><span>${message}</span>`;
+    dom.toastContainer.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mode Comparison Banner (Rolling 60s Window)
+  // ---------------------------------------------------------------------------
+  function updateModeComparison(comp) {
+    if (!comp) return;
+    if (dom.bannerTotal60s) dom.bannerTotal60s.textContent = comp.total_60s || 0;
+    if (dom.bannerBlocked60s) dom.bannerBlocked60s.textContent = comp.blocked_60s || 0;
+    if (dom.bannerFlagged60s) dom.bannerFlagged60s.textContent = comp.flagged_60s || 0;
+    if (dom.bannerReached60s) dom.bannerReached60s.textContent = comp.reached_backend_60s || 0;
+
+    const currentMode = (comp.current_mode || state.mode || 'block').toLowerCase();
+    if (dom.bannerModeBanner) {
+      if (currentMode === 'monitor') {
+        dom.bannerModeBanner.className = 'mode-comparison-banner monitor-mode';
+        if (dom.bannerModeText) dom.bannerModeText.textContent = 'MONITOR / AUDIT MODE ACTIVE';
+        if (dom.bannerInsightText) {
+          dom.bannerInsightText.innerHTML = '⚠️ <strong>Monitor / Audit Mode Active:</strong> Malicious requests are detected and flagged, but allowed to reach backend DemoShop (reached_backend = true).';
+        }
       } else {
-        dom.modeBtn.classList.remove('monitor');
+        dom.bannerModeBanner.className = 'mode-comparison-banner block-mode';
+        if (dom.bannerModeText) dom.bannerModeText.textContent = 'BLOCK MODE ACTIVE';
+        if (dom.bannerInsightText) {
+          dom.bannerInsightText.innerHTML = '🛡️ <strong>Perimeter Defense Enforced:</strong> All attacks meeting threat score threshold are intercepted at the gateway (HTTP 403) and dropped before reaching DemoShop (reached_backend = false).';
+        }
       }
+    }
+  }
+
+  async function loadModeComparison() {
+    try {
+      const comp = await apiFetch('/_gk/api/mode-comparison?window=60');
+      updateModeComparison(comp);
     } catch (e) {
-      console.warn('Mode fetch error:', e);
+      console.warn('Mode comparison fetch error:', e);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Mode Toggle & Action Buttons
+  // Signature Rules Management
+  // ---------------------------------------------------------------------------
+  let allRules = [];
+
+  async function loadRules() {
+    try {
+      allRules = await apiFetch('/_gk/api/rules');
+      renderRulesTable(allRules);
+      if (dom.rulesCountBadge) {
+        dom.rulesCountBadge.textContent = `${allRules.length} RULES`;
+      }
+    } catch (e) {
+      console.warn('Rules fetch error:', e);
+      if (dom.rulesTbody) {
+        dom.rulesTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--status-blocked); padding: 1.5rem;">Failed to load rules: ${e.message}</td></tr>`;
+      }
+    }
+  }
+
+  function renderRulesTable(rules) {
+    if (!dom.rulesTbody) return;
+    dom.rulesTbody.innerHTML = '';
+    const filter = (dom.ruleSearchInput ? dom.ruleSearchInput.value : '').toLowerCase().trim();
+    const filtered = rules.filter(r =>
+      !filter ||
+      r.id.toLowerCase().includes(filter) ||
+      r.name.toLowerCase().includes(filter) ||
+      r.category.toLowerCase().includes(filter)
+    );
+
+    if (filtered.length === 0) {
+      dom.rulesTbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">No rules matching filter</td></tr>';
+      return;
+    }
+
+    filtered.forEach(rule => {
+      const tr = document.createElement('tr');
+      tr.className = rule.enabled ? 'rule-row' : 'rule-row disabled';
+
+      const tdId = document.createElement('td');
+      tdId.style.fontFamily = 'var(--font-mono)';
+      tdId.style.fontWeight = '700';
+      tdId.textContent = rule.id;
+
+      const tdName = document.createElement('td');
+      tdName.textContent = rule.name;
+
+      const tdCat = document.createElement('td');
+      const catBadge = document.createElement('span');
+      catBadge.className = 'badge badge-primary';
+      catBadge.textContent = rule.category.toUpperCase();
+      tdCat.appendChild(catBadge);
+
+      const tdScore = document.createElement('td');
+      tdScore.style.fontWeight = '700';
+      tdScore.textContent = rule.score;
+
+      const tdSev = document.createElement('td');
+      const sevBadge = document.createElement('span');
+      sevBadge.className = `badge badge-${rule.severity.toLowerCase()}`;
+      sevBadge.textContent = rule.severity.toUpperCase();
+      tdSev.appendChild(sevBadge);
+
+      const tdAction = document.createElement('td');
+      tdAction.style.textAlign = 'center';
+      const switchLabel = document.createElement('label');
+      switchLabel.className = 'switch';
+      switchLabel.title = `Toggle rule ${rule.id} on or off`;
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = rule.enabled;
+      checkbox.id = `toggle-${rule.id}`;
+
+      checkbox.addEventListener('change', async () => {
+        const nextState = checkbox.checked;
+        try {
+          await apiFetch(`/_gk/api/rules/${encodeURIComponent(rule.id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: nextState })
+          });
+          rule.enabled = nextState;
+          tr.className = nextState ? 'rule-row' : 'rule-row disabled';
+          showToast(`Rule ${rule.id} ${nextState ? 'enabled' : 'disabled'}`, nextState ? 'success' : 'warning');
+        } catch (e) {
+          checkbox.checked = !nextState; // Revert switch on error
+          showToast(`Failed to toggle rule: ${e.message}`, 'error');
+        }
+      });
+
+      const sliderSpan = document.createElement('span');
+      sliderSpan.className = 'slider';
+      switchLabel.appendChild(checkbox);
+      switchLabel.appendChild(sliderSpan);
+      tdAction.appendChild(switchLabel);
+
+      tr.appendChild(tdId);
+      tr.appendChild(tdName);
+      tr.appendChild(tdCat);
+      tr.appendChild(tdScore);
+      tr.appendChild(tdSev);
+      tr.appendChild(tdAction);
+      dom.rulesTbody.appendChild(tr);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mode Toggle with Confirmation Dialog & Action Buttons
   // ---------------------------------------------------------------------------
   dom.modeBtn.addEventListener('click', async () => {
     const nextMode = state.mode === 'block' ? 'monitor' : 'block';
+    const confirmMsg = nextMode === 'monitor'
+      ? '⚠️ Switch gateway to MONITOR mode?\n\nMalicious traffic will be detected and flagged, but forwarded to DemoShop backend without blocking.'
+      : '🛡️ Switch gateway to BLOCK mode?\n\nMalicious traffic will be intercepted at the gateway and dropped with HTTP 403.';
+
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+
     try {
       await apiFetch('/_gk/api/mode', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: nextMode })
       });
-      loadMode();
+      state.mode = nextMode;
+      dom.modeLabel.textContent = nextMode.toUpperCase();
+      if (nextMode === 'monitor') {
+        dom.modeBtn.classList.add('monitor');
+      } else {
+        dom.modeBtn.classList.remove('monitor');
+      }
+      showToast(`Gateway mode switched to ${nextMode.toUpperCase()}`, nextMode === 'monitor' ? 'warning' : 'success');
+      await loadModeComparison();
+      await loadStats();
     } catch (e) {
-      alert('Failed to toggle mode: ' + e.message);
+      showToast('Failed to toggle mode: ' + e.message, 'error');
     }
   });
+
+  if (dom.btnReloadRules) {
+    dom.btnReloadRules.addEventListener('click', async () => {
+      dom.btnReloadRules.textContent = '⏳ Reloading...';
+      try {
+        const res = await apiFetch('/_gk/api/rules/reload', { method: 'POST' });
+        showToast(`Rules reloaded successfully (${res.loaded_rules_count} signature rules active, contract ${res.contract_active ? 'active' : 'inactive'})`, 'success');
+        await loadRules();
+        await loadStats();
+      } catch (e) {
+        showToast('Rule reload failed: ' + e.message, 'error');
+      } finally {
+        dom.btnReloadRules.textContent = '🔄 Hot Reload Rules';
+      }
+    });
+  }
+
+  if (dom.ruleSearchInput) {
+    dom.ruleSearchInput.addEventListener('input', () => {
+      renderRulesTable(allRules);
+    });
+  }
 
   dom.btnSimulate.addEventListener('click', async () => {
     dom.btnSimulate.textContent = '⏳ Running...';
     try {
       const res = await apiFetch('/_gk/api/simulate', { method: 'POST' });
-      alert(res.message || 'Simulator started in background.');
+      showToast(res.message || 'Simulator started in background.', 'info');
     } catch (e) {
-      alert('Simulator trigger: ' + e.message);
+      showToast('Simulator trigger error: ' + e.message, 'error');
     } finally {
       dom.btnSimulate.textContent = '⚡ Run Simulator';
     }
@@ -544,9 +748,9 @@
     dom.btnScorecard.textContent = '⏳ Benchmarking...';
     try {
       const res = await apiFetch('/_gk/api/benchmark', { method: 'POST' });
-      alert('Scorecard execution complete! Check Benchmark tab or report.');
+      showToast('Scorecard execution complete! Check Benchmark tab or report.', 'success');
     } catch (e) {
-      alert('Scorecard trigger: ' + e.message);
+      showToast('Scorecard trigger error: ' + e.message, 'error');
     } finally {
       dom.btnScorecard.textContent = '📊 Run Scorecard';
     }
@@ -690,10 +894,48 @@
     ws.onmessage = (evt) => {
       if (evt.data === 'pong') return;
       try {
-        const event = JSON.parse(evt.data);
-        addFeedEvent(event);
+        const msg = JSON.parse(evt.data);
+
+        // Control plane real-time messages
+        if (msg.type === 'mode_changed') {
+          state.mode = (msg.mode || 'block').toLowerCase();
+          dom.modeLabel.textContent = state.mode.toUpperCase();
+          if (state.mode === 'monitor') {
+            dom.modeBtn.classList.add('monitor');
+          } else {
+            dom.modeBtn.classList.remove('monitor');
+          }
+          loadModeComparison();
+          showToast(`Gateway mode: ${state.mode.toUpperCase()}`, 'info');
+          return;
+        }
+
+        if (msg.type === 'rule_toggled') {
+          const rule = allRules.find(r => r.id === msg.rule_id);
+          if (rule) {
+            rule.enabled = msg.enabled;
+            renderRulesTable(allRules);
+          }
+          return;
+        }
+
+        if (msg.type === 'rules_reloaded') {
+          loadRules();
+          loadStats();
+          return;
+        }
+
+        if (msg.type === 'unbanned') {
+          loadBans();
+          loadStats();
+          return;
+        }
+
+        // Standard security audit event
+        addFeedEvent(msg);
         loadStats();
-        if (event.action !== 'allowed') {
+        loadModeComparison();
+        if (msg.action !== 'allowed') {
           loadAttackers();
           loadBans();
         }
@@ -721,6 +963,8 @@
   async function init() {
     initCharts();
     await loadMode();
+    await loadModeComparison();
+    await loadRules();
     await loadStats();
     await loadEvents();
     await loadTimeline();
@@ -728,9 +972,10 @@
     await loadBans();
     connectWebSocket();
 
-    // Periodic refresh for timeline and ban countdowns
+    // Periodic refresh for timeline, mode comparison, and ban countdowns
     setInterval(() => {
       loadTimeline();
+      loadModeComparison();
       loadBans();
     }, 10000);
   }

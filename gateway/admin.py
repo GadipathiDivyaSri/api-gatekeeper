@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import time
 import urllib.parse
 from typing import Annotated, Any
 
@@ -145,10 +146,27 @@ def get_mode(request: Request) -> dict[str, str]:
 
 
 @admin_router.post("/mode", dependencies=[Depends(verify_admin_token)])
-def set_mode(payload: ModeRequest, request: Request) -> dict[str, str]:
-    """Toggle gateway mode between 'block' and 'monitor'."""
+async def set_mode(payload: ModeRequest, request: Request) -> dict[str, str]:
+    """Toggle gateway mode between 'block' and 'monitor' and broadcast change live."""
     request.app.state.config.mode = payload.mode
+    ws_mgr = getattr(request.app.state, "ws_manager", None)
+    if ws_mgr:
+        await ws_mgr.broadcast({
+            "type": "mode_changed",
+            "mode": payload.mode,
+            "ts": time.time(),
+        })
     return {"mode": request.app.state.config.mode}
+
+
+@admin_router.get("/mode-comparison", dependencies=[Depends(verify_admin_token)])
+def get_mode_comparison(
+    request: Request,
+    window: Annotated[int, Query(ge=1, le=3600)] = 60,
+) -> dict[str, Any]:
+    """Return rolling 60s comparison metrics for block vs monitor mode."""
+    store: EventStore = request.app.state.event_store
+    return store.get_mode_comparison(window_sec=window, current_mode=request.app.state.config.mode)
 
 
 @admin_router.get("/rules", dependencies=[Depends(verify_admin_token)])
@@ -175,13 +193,21 @@ def list_rules(request: Request) -> list[dict[str, Any]]:
 
 
 @admin_router.post("/rules/reload", dependencies=[Depends(verify_admin_token)])
-def reload_rules(request: Request) -> dict[str, Any]:
-    """Hot-reload signature rules and OpenAPI contract from source."""
+async def reload_rules(request: Request) -> dict[str, Any]:
+    """Hot-reload signature rules and OpenAPI contract from source and broadcast update."""
     rule_mgr: RuleManager = request.app.state.rule_manager
     count = rule_mgr.reload()
     contract_active = False
     if hasattr(request.app.state, "contract_manager") and request.app.state.contract_manager is not None:
         contract_active = request.app.state.contract_manager.reload()
+    ws_mgr = getattr(request.app.state, "ws_manager", None)
+    if ws_mgr:
+        await ws_mgr.broadcast({
+            "type": "rules_reloaded",
+            "count": count,
+            "contract_active": contract_active,
+            "ts": time.time(),
+        })
     return {"status": "ok", "loaded_rules_count": count, "contract_active": contract_active}
 
 
@@ -190,12 +216,20 @@ class RuleToggleRequest(BaseModel):
 
 
 @admin_router.patch("/rules/{rule_id}", dependencies=[Depends(verify_admin_token)])
-def toggle_rule(rule_id: str, payload: RuleToggleRequest, request: Request) -> dict[str, Any]:
-    """Enable or disable a specific signature rule dynamically."""
+async def toggle_rule(rule_id: str, payload: RuleToggleRequest, request: Request) -> dict[str, Any]:
+    """Enable or disable a specific signature rule dynamically and broadcast change."""
     rule_mgr: RuleManager = request.app.state.rule_manager
     success = rule_mgr.set_rule_enabled(rule_id, payload.enabled)
     if not success:
         raise HTTPException(status_code=404, detail="Rule not found")
+    ws_mgr = getattr(request.app.state, "ws_manager", None)
+    if ws_mgr:
+        await ws_mgr.broadcast({
+            "type": "rule_toggled",
+            "rule_id": rule_id,
+            "enabled": payload.enabled,
+            "ts": time.time(),
+        })
     return {"rule_id": rule_id, "enabled": payload.enabled}
 
 
@@ -212,10 +246,18 @@ def list_bans(request: Request) -> list[dict[str, Any]]:
 
 
 @admin_router.delete("/bans/{ip}", dependencies=[Depends(verify_admin_token)])
-def unban_ip(ip: str, request: Request) -> dict[str, Any]:
-    """Remove an active ban for an IP address."""
+async def unban_ip(ip: str, request: Request) -> dict[str, Any]:
+    """Remove an active ban for an IP address and broadcast update."""
     ban_mgr: BanManager = request.app.state.ban_manager
     unbanned = ban_mgr.unban(ip)
+    ws_mgr = getattr(request.app.state, "ws_manager", None)
+    if ws_mgr:
+        await ws_mgr.broadcast({
+            "type": "unbanned",
+            "ip": ip,
+            "unbanned": unbanned,
+            "ts": time.time(),
+        })
     return {"ip": ip, "unbanned": unbanned}
 
 

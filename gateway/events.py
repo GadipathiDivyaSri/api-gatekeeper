@@ -370,6 +370,55 @@ class EventStore:
         finally:
             conn.close()
 
+    def get_mode_comparison(self, window_sec: int = 60, current_mode: str = "block") -> dict[str, Any]:
+        """
+        Compute rolling before/after mode comparison metrics over the specified window (default 60s).
+        Returns counts for total, blocked at perimeter, flagged (monitor), allowed, and reached backend.
+        """
+        now = time.time()
+        start_ts = now - window_sec if window_sec > 0 else 0.0
+
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN action = 'blocked' THEN 1 ELSE 0 END) as blocked,
+                    SUM(CASE WHEN action = 'flagged' THEN 1 ELSE 0 END) as flagged,
+                    SUM(CASE WHEN action = 'allowed' THEN 1 ELSE 0 END) as allowed,
+                    SUM(CASE WHEN action = 'rate_limited' THEN 1 ELSE 0 END) as rate_limited,
+                    SUM(CASE WHEN action = 'banned' THEN 1 ELSE 0 END) as banned,
+                    SUM(CASE WHEN action = 'error_masked' THEN 1 ELSE 0 END) as error_masked,
+                    SUM(CASE WHEN reached_backend = 1 THEN 1 ELSE 0 END) as reached_backend,
+                    SUM(CASE WHEN reached_backend = 0 THEN 1 ELSE 0 END) as blocked_perimeter
+                FROM events
+                WHERE ts >= ?;
+                """,
+                (start_ts,),
+            )
+            row = cursor.fetchone()
+            total = row["total"] or 0
+            blocked = row["blocked"] or 0
+            flagged = row["flagged"] or 0
+            allowed = row["allowed"] or 0
+            reached = row["reached_backend"] or 0
+            perimeter = row["blocked_perimeter"] or 0
+
+            return {
+                "window_sec": window_sec,
+                "current_mode": current_mode,
+                "total_60s": total,
+                "blocked_60s": blocked,
+                "flagged_60s": flagged,
+                "allowed_60s": allowed,
+                "reached_backend_60s": reached,
+                "blocked_perimeter_60s": perimeter,
+            }
+        finally:
+            conn.close()
+
     def get_timeline(self, bucket: int = 10, window: int = 900) -> list[dict[str, Any]]:
         """Compute time-series histogram buckets of allowed vs blocked requests."""
         bucket = max(1, bucket)
