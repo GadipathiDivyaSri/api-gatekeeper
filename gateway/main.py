@@ -348,7 +348,7 @@ def create_app(
         upstream_start = time.perf_counter()
         client: httpx.AsyncClient = app.state.http_client
 
-        proxy_response = await proxy_forward(
+        proxy_response, error_masked = await proxy_forward(
             client=client,
             upstream_url=app.state.config.upstream_url,
             method=request.method,
@@ -363,6 +363,12 @@ def create_app(
         upstream_ms = (time.perf_counter() - upstream_start) * 1000.0
         total_latency_ms = (time.perf_counter() - start_time) * 1000.0
 
+        # If upstream error was masked, record action as "error_masked"
+        action = "error_masked" if error_masked else decision.action
+        if error_masked and primary_category == "none":
+            primary_category = "error"
+            severity = "high"
+
         # Emit audit event for proxied request
         event = Event(
             incident_id=incident_id,
@@ -374,7 +380,7 @@ def create_app(
             user_agent=user_agent[:256],
             body_excerpt=body_text[:2048],
             decoded_excerpt="",
-            action=decision.action,  # "allowed" or "flagged"
+            action=action,  # "allowed", "flagged", or "error_masked"
             score=decision.score,
             primary_category=primary_category,
             severity=severity,

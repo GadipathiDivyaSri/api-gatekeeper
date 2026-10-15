@@ -12,6 +12,12 @@ import httpx
 from fastapi import Response
 from fastapi.responses import JSONResponse, StreamingResponse
 
+from gateway.shield import (
+    apply_shield_headers,
+    create_masked_error_response,
+    should_mask_response,
+)
+
 # Hop-by-hop headers that must not be forwarded from client to upstream
 HOP_BY_HOP_HEADERS = {
     "connection",
@@ -23,15 +29,6 @@ HOP_BY_HOP_HEADERS = {
     "transfer-encoding",
     "upgrade",
     "host",
-}
-
-# Response headers that must not be forwarded from upstream to client
-DROP_RESPONSE_HEADERS = {
-    "content-encoding",
-    "content-length",
-    "transfer-encoding",
-    "connection",
-    "keep-alive",
 }
 
 
@@ -68,8 +65,11 @@ async def proxy_forward(
     body: bytes,
     client_ip: str,
     incident_id: str,
-) -> Response:
-    """Forward incoming request to upstream service and stream response back."""
+) -> tuple[Response, bool]:
+    """
+    Forward incoming request to upstream service and stream shielded response back.
+    Returns (response, error_masked).
+    """
     target_path = "/" + path.lstrip("/")
     target_url = upstream_url.rstrip("/") + target_path
     if query_string:
@@ -97,20 +97,31 @@ async def proxy_forward(
         httpx.TimeoutException,
         httpx.NetworkError,
     ):
-        return JSONResponse(
-            status_code=502,
-            content={
-                "error": "Bad Gateway: Upstream service unavailable",
-                "incident_id": incident_id,
-            },
+        shielded_502_headers = apply_shield_headers({})
+        return (
+            JSONResponse(
+                status_code=502,
+                content={
+                    "error": "Bad Gateway: Upstream service unavailable",
+                    "incident_id": incident_id,
+                },
+                headers=shielded_502_headers,
+            ),
+            False,
         )
 
-    # Clean response headers
-    clean_resp_headers = {
-        k: v
-        for k, v in upstream_resp.headers.items()
-        if k.lower() not in DROP_RESPONSE_HEADERS
-    }
+    # If upstream returned an internal server error (>= 500), mask it
+    if should_mask_response(upstream_resp.status_code):
+        await upstream_resp.aclose()
+        masked_resp = create_masked_error_response(
+            status_code=upstream_resp.status_code,
+            incident_id=incident_id,
+            base_headers=dict(upstream_resp.headers),
+        )
+        return masked_resp, True
+
+    # Clean response headers with defensive security headers
+    clean_resp_headers = apply_shield_headers(dict(upstream_resp.headers))
 
     async def body_stream() -> AsyncGenerator[bytes, None]:
         try:
@@ -119,8 +130,11 @@ async def proxy_forward(
         finally:
             await upstream_resp.aclose()
 
-    return StreamingResponse(
-        content=body_stream(),
-        status_code=upstream_resp.status_code,
-        headers=clean_resp_headers,
+    return (
+        StreamingResponse(
+            content=body_stream(),
+            status_code=upstream_resp.status_code,
+            headers=clean_resp_headers,
+        ),
+        False,
     )
