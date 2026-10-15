@@ -1,112 +1,756 @@
-# API Gatekeeper — Benign Test Samples
+# API Gatekeeper — Benign Test Samples (80 cases)
 # Challenging test cases that must NEVER trigger any false positive rule hits.
 
+# ── Names with apostrophes & special characters (10 cases) ──────────────────
 - id: benign-001
-  description: Name with apostrophe
   category: benign
   label: benign
   method: GET
   path: /api/products
-  query:
-    search: "O'Brien"
+  query: "search=O'Brien"
   body: null
   headers: {}
 
 - id: benign-002
-  description: Credit Union reference
   category: benign
   label: benign
   method: GET
   path: /api/products
-  query:
-    search: "Western Union International"
+  query: "author=D'Angelo"
   body: null
   headers: {}
 
 - id: benign-003
-  description: UI prompt text containing select
   category: benign
   label: benign
   method: GET
   path: /api/products
-  query:
-    search: "select a plan"
+  query: "name=McDonald's"
   body: null
   headers: {}
 
 - id: benign-004
-  description: Discussion about dropping items
   category: benign
   label: benign
   method: POST
   path: /api/feedback
-  query: {}
-  body: '{"product_id": 1, "comment": "Drop by our store anytime, or drop an email to support."}'
+  query: ""
+  body: '{"name": "René Descartes", "comment": "I think, therefore I shop."}'
   headers:
     content-type: application/json
 
 - id: benign-005
-  description: Normal search with mathematical or logic text
   category: benign
   label: benign
   method: GET
   path: /api/products
-  query:
-    search: "Option 1 or Option 2"
+  query: "brand=L'Oreal"
   body: null
   headers: {}
 
 - id: benign-006
-  description: Legitimate external public URL
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=St. John's Wort Herbal Tea"
+  body: null
+  headers: {}
+
+- id: benign-007
   category: benign
   label: benign
   method: POST
   path: /api/feedback
-  query: {}
-  body: '{"product_id": 2, "comment": "Check out documentation at https://example.com/docs or https://github.com"}'
+  query: ""
+  body: '{"author": "O''Connor", "comment": "Fast delivery, thank you!"}'
   headers:
     content-type: application/json
 
-- id: benign-007
-  description: Product name with pet or common terms
-  category: benign
-  label: benign
-  method: GET
-  path: /api/products
-  query:
-    search: "cat treats and toys"
-  body: null
-  headers: {}
-
 - id: benign-008
-  description: Book search with sleep or id keywords
   category: benign
   label: benign
   method: GET
   path: /api/products
-  query:
-    search: "Deep Sleep & Relaxation Guide"
+  query: "designer=Yves Saint Laurent"
   body: null
   headers: {}
 
 - id: benign-009
-  description: Currency symbols in feedback body
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Children's Illustrated Dictionary"
+  body: null
+  headers: {}
+
+- id: benign-010
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "artist=Guns N' Roses"
+  body: null
+  headers: {}
+
+# ── Texts with SQL keywords used benignly (15 cases) ────────────────────────
+- id: benign-011
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Western Union International"
+  body: null
+  headers: {}
+
+- id: benign-012
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=select a plan"
+  body: null
+  headers: {}
+
+- id: benign-013
   category: benign
   label: benign
   method: POST
   path: /api/feedback
-  query: {}
+  query: ""
+  body: '{"product_id": 1, "comment": "Drop by our store anytime, or drop an email to support."}'
+  headers:
+    content-type: application/json
+
+- id: benign-014
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Union of Concerned Scientists Report"
+  body: null
+  headers: {}
+
+- id: benign-015
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "sort=popularity&order=asc"
+  body: null
+  headers: {}
+
+- id: benign-016
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "Please update your shipping status soon."}'
+  headers:
+    content-type: application/json
+
+- id: benign-017
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Credit Union ATM locator"
+  body: null
+  headers: {}
+
+- id: benign-018
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "category=table tennis bats and balls"
+  body: null
+  headers: {}
+
+- id: benign-019
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=create a custom birthday gift basket"
+  body: null
+  headers: {}
+
+- id: benign-020
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "q=the alter ego novel by John"
+  body: null
+  headers: {}
+
+- id: benign-021
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"subject": "Insert new card", "comment": "How do I insert a micro SD card?"}'
+  headers:
+    content-type: application/json
+
+- id: benign-022
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=index finger compression splint"
+  body: null
+  headers: {}
+
+- id: benign-023
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=drop-down menu organizer"
+  body: null
+  headers: {}
+
+- id: benign-024
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "title=Select Stories from Modern Literature"
+  body: null
+  headers: {}
+
+- id: benign-025
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "Price drop notifications work wonderfully!"}'
+  headers:
+    content-type: application/json
+
+# ── Math, Logic & Comparison phrases (10 cases) ─────────────────────────────
+- id: benign-026
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Option 1 or Option 2"
+  body: null
+  headers: {}
+
+- id: benign-027
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "q=True or False Trivia Game"
+  body: null
+  headers: {}
+
+- id: benign-028
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "filter=size and color"
+  body: null
+  headers: {}
+
+- id: benign-029
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"rating": 5, "comment": "2 + 2 = 4 simple arithmetic book"}'
+  headers:
+    content-type: application/json
+
+- id: benign-030
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=either black or white shoes"
+  body: null
+  headers: {}
+
+- id: benign-031
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "compare=item1 vs item2"
+  body: null
+  headers: {}
+
+- id: benign-032
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=grade 1 or grade 2 math workbook"
+  body: null
+  headers: {}
+
+- id: benign-033
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "5 stars or nothing, this item is supreme."}'
+  headers:
+    content-type: application/json
+
+- id: benign-034
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=day and night skincare cream"
+  body: null
+  headers: {}
+
+- id: benign-035
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "q=one or more replacement parts"
+  body: null
+  headers: {}
+
+# ── Words resembling command / system words (15 cases) ───────────────────────
+- id: benign-036
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=cat treats and toys"
+  body: null
+  headers: {}
+
+- id: benign-037
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=Deep Sleep & Relaxation Guide"
+  body: null
+  headers: {}
+
+- id: benign-038
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "category=pet supplies for cats"
+  body: null
+  headers: {}
+
+- id: benign-039
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=find lost keys Bluetooth tracker"
+  body: null
+  headers: {}
+
+- id: benign-040
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "Echo sound quality is crisp and clear."}'
+  headers:
+    content-type: application/json
+
+- id: benign-041
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=kill time travel puzzles"
+  body: null
+  headers: {}
+
+- id: benign-042
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=more details on warranty coverage"
+  body: null
+  headers: {}
+
+- id: benign-043
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=ps: I love you paperback"
+  body: null
+  headers: {}
+
+- id: benign-044
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=date night conversation cards"
+  body: null
+  headers: {}
+
+- id: benign-045
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=fishing net with extendable pole"
+  body: null
+  headers: {}
+
+- id: benign-046
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=curl defining hair cream"
+  body: null
+  headers: {}
+
+- id: benign-047
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "ping pong paddle set with 4 balls"}'
+  headers:
+    content-type: application/json
+
+- id: benign-048
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=touch sensor LED night lamp"
+  body: null
+  headers: {}
+
+- id: benign-049
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=type C fast charging cable"
+  body: null
+  headers: {}
+
+- id: benign-050
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=id card badge holder lanyard"
+  body: null
+  headers: {}
+
+# ── Currency, JSON, Code Snippets & Public URLs (15 cases) ───────────────────
+- id: benign-051
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"product_id": 2, "comment": "Check out documentation at https://example.com/docs or https://github.com"}'
+  headers:
+    content-type: application/json
+
+- id: benign-052
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
   body: '{"product_id": 3, "comment": "Great value for $50, definitely worth every dollar!"}'
   headers:
     content-type: application/json
 
-- id: benign-010
-  description: Standard browser user agent
+- id: benign-053
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "url=https://en.wikipedia.org/wiki/Coffee"
+  body: null
+  headers: {}
+
+- id: benign-054
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"review": "Total cost was $199.99 including tax and shipping."}'
+  headers:
+    content-type: application/json
+
+- id: benign-055
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"snippet": "In Python you can use print(''hello'') to output text."}'
+  headers:
+    content-type: application/json
+
+- id: benign-056
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"code_sample": "x = 10; y = 20; return x + y"}'
+  headers:
+    content-type: application/json
+
+- id: benign-057
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "ref=https://twitter.com/innohacks"
+  body: null
+  headers: {}
+
+- id: benign-058
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"price_range": "$10-$50", "currency": "USD"}'
+  headers:
+    content-type: application/json
+
+- id: benign-059
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "source=https://aws.amazon.com/solutions"
+  body: null
+  headers: {}
+
+- id: benign-060
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"example": "function greet(name) { return ''Hello '' + name; }"}'
+  headers:
+    content-type: application/json
+
+- id: benign-061
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "link=https://news.ycombinator.com"
+  body: null
+  headers: {}
+
+- id: benign-062
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"tag": "Save up to $100 on selected items this week"}'
+  headers:
+    content-type: application/json
+
+- id: benign-063
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "q=learn C++ programming for beginners"
+  body: null
+  headers: {}
+
+- id: benign-064
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=B2B marketing strategies"
+  body: null
+  headers: {}
+
+- id: benign-065
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=A/B testing handbook"
+  body: null
+  headers: {}
+
+# ── Valid User-Agents, Auth & Standard App Paths (15 cases) ──────────────────
+- id: benign-066
   category: benign
   label: benign
   method: GET
   path: /api/health
-  query: {}
+  query: ""
   body: null
   headers:
     user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
+- id: benign-067
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "page=1&limit=20"
+  body: null
+  headers:
+    user-agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+
+- id: benign-068
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products/1
+  query: ""
+  body: null
+  headers:
+    user-agent: "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0"
+
+- id: benign-069
+  category: benign
+  label: benign
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": "alice@demoshop.local", "password": "CorrectPassword123!"}'
+  headers:
+    content-type: application/json
+    user-agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
+
+- id: benign-070
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "sort=price_asc"
+  body: null
+  headers:
+    user-agent: "Mozilla/5.0 (Android 14; Mobile; rv:122.0) Gecko/122.0 Firefox/122.0"
+
+- id: benign-071
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products/2
+  query: "currency=EUR"
+  body: null
+  headers: {}
+
+- id: benign-072
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"product_id": 1, "rating": 5, "comment": "Excellent packaging and super fast delivery."}'
+  headers:
+    content-type: application/json
+
+- id: benign-073
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "in_stock=true&category=apparel"
+  body: null
+  headers: {}
+
+- id: benign-074
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "brand=Sony&model=WH-1000XM5"
+  body: null
+  headers: {}
+
+- id: benign-075
+  category: benign
+  label: benign
+  method: GET
+  path: /api/health
+  query: ""
+  body: null
+  headers:
+    accept: "application/json"
+
+- id: benign-076
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "filter=wireless+noise+cancelling"
+  body: null
+  headers: {}
+
+- id: benign-077
+  category: benign
+  label: benign
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": "bob_shopper", "password": "SecurePassword#2026"}'
+  headers:
+    content-type: application/json
+
+- id: benign-078
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "search=ergonomic+mesh+office+chair"
+  body: null
+  headers: {}
+
+- id: benign-079
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products/3
+  query: ""
+  body: null
+  headers:
+    accept-language: "en-US,en;q=0.9"
+
+- id: benign-080
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query: "tag=sale&discount_min=10"
+  body: null
+  headers: {}

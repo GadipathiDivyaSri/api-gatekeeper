@@ -35,4 +35,4 @@ contract:
     - permissions
     - verified
 
-client_ip_source: socket
+client_ip_source: xff_first

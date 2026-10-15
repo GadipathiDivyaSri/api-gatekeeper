@@ -7,6 +7,7 @@ benign corpus verification (zero false positives), and rule hot-reloading/toggli
 from __future__ import annotations
 
 from pathlib import Path
+import urllib.parse
 
 import yaml
 
@@ -163,13 +164,23 @@ def test_benign_corpus_produces_zero_hits():
     assert len(samples) > 0
 
     for sample in samples:
-        q_params = {k: [str(v)] for k, v in sample.get("query", {}).items()}
+        raw_q = sample.get("query")
+        if isinstance(raw_q, dict):
+            q_params = {k: [str(v)] for k, v in raw_q.items()}
+            q_str = "&".join(f"{k}={v}" for k, v in raw_q.items())
+        elif isinstance(raw_q, str):
+            q_str = raw_q
+            q_params = urllib.parse.parse_qs(raw_q, keep_blank_values=True)
+        else:
+            q_str = ""
+            q_params = {}
+
         ctx = RequestContext(
             incident_id=f"AG-BENIGN-{sample.get('id')}",
             client_ip="127.0.0.1",
             method=sample.get("method", "GET"),
             path=sample.get("path", "/api/products"),
-            query_string="&".join(f"{k}={v}" for k, v in sample.get("query", {}).items()),
+            query_string=q_str,
             query_params=q_params,
             headers=sample.get("headers", {}),
             user_agent=sample.get("headers", {}).get("user-agent", "Mozilla/5.0"),

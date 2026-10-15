@@ -273,3 +273,65 @@ def test_payload(payload: TestPayloadRequest, request: Request) -> dict[str, Any
         "findings": [f.to_dict() for f in decision.findings],
         "decode_chains": decode_chains,
     }
+
+
+# -----------------------------------------------------------------------------
+# Security Benchmark & Simulator Controls (Module M7)
+# -----------------------------------------------------------------------------
+
+
+@admin_router.post("/benchmark", dependencies=[Depends(verify_admin_token)])
+def trigger_benchmark(request: Request) -> dict[str, Any]:
+    """Execute the Security Scorecard benchmark and return metrics."""
+    from gateway.benchmark import run_benchmark
+
+    return run_benchmark(
+        config=request.app.state.config,
+        rules_manager=request.app.state.rule_manager,
+        save=True,
+    )
+
+
+@admin_router.get("/benchmark/latest", dependencies=[Depends(verify_admin_token)])
+def get_latest_benchmark() -> dict[str, Any]:
+    """Retrieve the most recently saved benchmark scorecard."""
+    import json
+    from pathlib import Path
+
+    latest_path = Path("data/benchmark_latest.json")
+    if not latest_path.is_file():
+        from gateway.benchmark import run_benchmark
+
+        return run_benchmark(save=True)
+    with open(latest_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@admin_router.post("/simulate", dependencies=[Depends(verify_admin_token)])
+def trigger_simulator(request: Request) -> dict[str, Any]:
+    """Run attack simulator in background subprocess if DEMO_MODE=true."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    config: GatewayConfig = request.app.state.config
+    if not config.demo_mode:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Attack simulator is disabled when DEMO_MODE=false",
+        )
+
+    sim_script = Path("tools/attack_sim.py").resolve()
+    if not sim_script.is_file():
+        raise HTTPException(status_code=500, detail="Simulator script tools/attack_sim.py not found")
+
+    subprocess.Popen(
+        [sys.executable, str(sim_script)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return {
+        "status": "running",
+        "message": "Attack simulation launched in background",
+    }
+

