@@ -1,0 +1,112 @@
+# API Gatekeeper — Benign Test Samples
+# Challenging test cases that must NEVER trigger any false positive rule hits.
+
+- id: benign-001
+  description: Name with apostrophe
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "O'Brien"
+  body: null
+  headers: {}
+
+- id: benign-002
+  description: Credit Union reference
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "Western Union International"
+  body: null
+  headers: {}
+
+- id: benign-003
+  description: UI prompt text containing select
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "select a plan"
+  body: null
+  headers: {}
+
+- id: benign-004
+  description: Discussion about dropping items
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: {}
+  body: '{"product_id": 1, "comment": "Drop by our store anytime, or drop an email to support."}'
+  headers:
+    content-type: application/json
+
+- id: benign-005
+  description: Normal search with mathematical or logic text
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "Option 1 or Option 2"
+  body: null
+  headers: {}
+
+- id: benign-006
+  description: Legitimate external public URL
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: {}
+  body: '{"product_id": 2, "comment": "Check out documentation at https://example.com/docs or https://github.com"}'
+  headers:
+    content-type: application/json
+
+- id: benign-007
+  description: Product name with pet or common terms
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "cat treats and toys"
+  body: null
+  headers: {}
+
+- id: benign-008
+  description: Book search with sleep or id keywords
+  category: benign
+  label: benign
+  method: GET
+  path: /api/products
+  query:
+    search: "Deep Sleep & Relaxation Guide"
+  body: null
+  headers: {}
+
+- id: benign-009
+  description: Currency symbols in feedback body
+  category: benign
+  label: benign
+  method: POST
+  path: /api/feedback
+  query: {}
+  body: '{"product_id": 3, "comment": "Great value for $50, definitely worth every dollar!"}'
+  headers:
+    content-type: application/json
+
+- id: benign-010
+  description: Standard browser user agent
+  category: benign
+  label: benign
+  method: GET
+  path: /api/health
+  query: {}
+  body: null
+  headers:
+    user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"

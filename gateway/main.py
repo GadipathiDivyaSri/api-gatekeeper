@@ -1,7 +1,7 @@
 """
-API Gatekeeper Main Application (Module M2).
+API Gatekeeper Main Application (Modules M2 & M3).
 FastAPI application factory, lifespan client management, health check endpoint,
-and transparent reverse proxy catch-all route.
+pure security inspection pipeline, and transparent reverse proxy catch-all route.
 """
 
 from __future__ import annotations
@@ -16,7 +16,10 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
 from gateway.config import GatewayConfig, get_config
+from gateway.models import RequestContext
+from gateway.pipeline import inspect
 from gateway.proxy import proxy_forward
+from gateway.rules import RuleManager, get_rule_manager
 
 
 def generate_incident_id() -> str:
@@ -47,16 +50,21 @@ def resolve_client_ip(request: Request, ip_source: str) -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Manage shared HTTP client lifecycle for upstream proxying."""
+    """Manage shared HTTP client lifecycle and precompile security rules."""
     client = httpx.AsyncClient(timeout=10.0, follow_redirects=False)
     app.state.http_client = client
+    app.state.rule_manager = get_rule_manager()
     yield
     await client.aclose()
 
 
-def create_app(config: GatewayConfig | None = None) -> FastAPI:
+def create_app(
+    config: GatewayConfig | None = None,
+    rule_manager: RuleManager | None = None,
+) -> FastAPI:
     """Application factory for API Gatekeeper."""
     app_config = config or get_config()
+    active_rules = rule_manager or get_rule_manager()
 
     app = FastAPI(
         title="API Gatekeeper",
@@ -65,6 +73,7 @@ def create_app(config: GatewayConfig | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.config = app_config
+    app.state.rule_manager = active_rules
 
     # -------------------------------------------------------------------------
     # Control Plane Endpoints
@@ -106,7 +115,7 @@ def create_app(config: GatewayConfig | None = None) -> FastAPI:
         include_in_schema=False,
     )
     async def catch_all_proxy(path: str, request: Request) -> Response:
-        """Transparent reverse proxy route forwarding requests to upstream backend."""
+        """Inspect and transparently proxy requests to upstream backend."""
         incident_id = generate_incident_id()
         client_ip = resolve_client_ip(request, app.state.config.client_ip_source)
 
@@ -121,17 +130,63 @@ def create_app(config: GatewayConfig | None = None) -> FastAPI:
                 },
             )
 
-        client: httpx.AsyncClient = app.state.http_client
-        query_string = request.url.query
-        headers = dict(request.headers.items())
+        # Extract parameters and decode body text for inspection
+        query_params: dict[str, list[str]] = {}
+        for k, v in request.query_params.multi_items():
+            query_params.setdefault(k, []).append(v)
 
+        body_text = ""
+        if body:
+            try:
+                body_text = body.decode("utf-8", errors="replace")
+            except Exception:
+                body_text = ""
+
+        headers_dict = dict(request.headers.items())
+        content_type = request.headers.get("content-type", "")
+        user_agent = request.headers.get("user-agent", "")
+        formatted_path = path if path.startswith("/") else f"/{path}"
+
+        ctx = RequestContext(
+            incident_id=incident_id,
+            client_ip=client_ip,
+            method=request.method,
+            path=formatted_path,
+            query_string=request.url.query,
+            query_params=query_params,
+            headers=headers_dict,
+            user_agent=user_agent,
+            body_bytes=body,
+            body_text=body_text,
+            content_type=content_type,
+        )
+
+        # Pure inspection pipeline
+        decision = inspect(
+            ctx,
+            config=app.state.config,
+            rules_manager=app.state.rule_manager,
+        )
+
+        # Block if decision warrants blocking
+        if decision.action == "blocked":
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": "Request blocked",
+                    "incident_id": incident_id,
+                },
+            )
+
+        # Forward allowed or flagged requests to upstream
+        client: httpx.AsyncClient = app.state.http_client
         return await proxy_forward(
             client=client,
             upstream_url=app.state.config.upstream_url,
             method=request.method,
             path=path,
-            query_string=query_string,
-            headers=headers,
+            query_string=request.url.query,
+            headers=headers_dict,
             body=body,
             client_ip=client_ip,
             incident_id=incident_id,
