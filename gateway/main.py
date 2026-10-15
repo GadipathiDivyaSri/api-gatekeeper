@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 
 from gateway.admin import admin_router
 from gateway.config import GatewayConfig, get_config
+from gateway.contract import ContractManager
 from gateway.events import EventStore, get_event_store
 from gateway.models import Event, RequestContext
 from gateway.pipeline import inspect
@@ -80,6 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app(
     config: GatewayConfig | None = None,
     rule_manager: RuleManager | None = None,
+    contract_manager: ContractManager | None = None,
     rate_limiter: RateLimiter | None = None,
     ban_manager: BanManager | None = None,
     event_store: EventStore | None = None,
@@ -88,6 +90,7 @@ def create_app(
     """Application factory for API Gatekeeper."""
     app_config = config or get_config()
     active_rules = rule_manager or get_rule_manager()
+    active_contract = contract_manager if contract_manager is not None else ContractManager(app_config)
     active_rl = rate_limiter or get_rate_limiter(app_config)
     active_bans = ban_manager or get_ban_manager(app_config)
     active_ws = ws_manager or get_ws_manager()
@@ -101,6 +104,7 @@ def create_app(
     )
     app.state.config = app_config
     app.state.rule_manager = active_rules
+    app.state.contract_manager = active_contract
     app.state.rate_limiter = active_rl
     app.state.ban_manager = active_bans
     app.state.ws_manager = active_ws
@@ -265,11 +269,12 @@ def create_app(
             content_type=content_type,
         )
 
-        # Pure inspection pipeline (ban check -> rate limit -> signatures -> scoring)
+        # Pure inspection pipeline (ban check -> rate limit -> contract -> signatures -> scoring)
         decision = inspect(
             ctx,
             config=app.state.config,
             rules_manager=app.state.rule_manager,
+            contract_manager=getattr(app.state, "contract_manager", None),
             rate_limiter=app.state.rate_limiter,
             ban_manager=app.state.ban_manager,
         )

@@ -18,6 +18,7 @@ def inspect(
     ctx: RequestContext,
     config: GatewayConfig | None = None,
     rules_manager: RuleManager | None = None,
+    contract_manager: Any | None = None,
     rate_limiter: RateLimiter | None = None,
     ban_manager: BanManager | None = None,
     dry_run: bool = False,
@@ -28,8 +29,9 @@ def inspect(
     1. Ban check (active temporary bans).
     2. Rate limit check (general or login scope).
     3. Normalization (multi-decode variants, JSON/form extraction).
-    4. Signature matching (declared targets).
-    5. Risk scoring and action determination (allowed / flagged / blocked).
+    4. OpenAPI Contract Guard (allow-list, schema, parameter validation).
+    5. Signature matching (declared targets).
+    6. Risk scoring and action determination (allowed / flagged / blocked).
     """
     active_config = config or get_config()
     active_rules = rules_manager or get_rule_manager()
@@ -72,10 +74,16 @@ def inspect(
     # 3. Normalise inspection targets
     variants_by_target = build_targets(ctx)
 
-    # 4. Match signature rules
-    findings = active_rules.match(variants_by_target)
+    # 4. OpenAPI Contract Guard (positive security model)
+    contract_findings = []
+    if contract_manager is not None:
+        contract_findings = contract_manager.validate(ctx)
 
-    # 5. Sum distinct rule scores
+    # 5. Match signature rules
+    signature_findings = active_rules.match(variants_by_target)
+    findings = contract_findings + signature_findings
+
+    # 6. Sum rule scores
     total_score = sum(f.score for f in findings)
     threshold = active_config.block_threshold
 

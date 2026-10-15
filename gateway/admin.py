@@ -63,7 +63,12 @@ def get_stats(
 ) -> dict[str, Any]:
     """Retrieve security gateway KPIs and aggregated metrics."""
     store: EventStore = request.app.state.event_store
-    return store.get_stats(window=window)
+    stats = store.get_stats(window=window)
+    contract_active = False
+    if hasattr(request.app.state, "contract_manager") and request.app.state.contract_manager is not None:
+        contract_active = request.app.state.contract_manager.is_active
+    stats["contract_active"] = contract_active
+    return stats
 
 
 @admin_router.get("/events", dependencies=[Depends(verify_admin_token)])
@@ -171,10 +176,13 @@ def list_rules(request: Request) -> list[dict[str, Any]]:
 
 @admin_router.post("/rules/reload", dependencies=[Depends(verify_admin_token)])
 def reload_rules(request: Request) -> dict[str, Any]:
-    """Hot-reload signature rules from disk."""
+    """Hot-reload signature rules and OpenAPI contract from source."""
     rule_mgr: RuleManager = request.app.state.rule_manager
     count = rule_mgr.reload()
-    return {"status": "ok", "loaded_rules_count": count}
+    contract_active = False
+    if hasattr(request.app.state, "contract_manager") and request.app.state.contract_manager is not None:
+        contract_active = request.app.state.contract_manager.reload()
+    return {"status": "ok", "loaded_rules_count": count, "contract_active": contract_active}
 
 
 class RuleToggleRequest(BaseModel):
@@ -255,6 +263,7 @@ def test_payload(payload: TestPayloadRequest, request: Request) -> dict[str, Any
         ctx,
         config=request.app.state.config,
         rules_manager=request.app.state.rule_manager,
+        contract_manager=getattr(request.app.state, "contract_manager", None),
         dry_run=True,
     )
 
