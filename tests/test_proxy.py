@@ -246,6 +246,14 @@ def test_health_check_endpoint():
             data = resp.json()
             assert data["status"] == "ok"
             assert data["upstream_reachable"] is False
+
+            # Case 3: Shallow check (?shallow=1) answers immediately without touching upstream
+            resp_shallow = await client_down.get("/_gk/health?shallow=1")
+            assert resp_shallow.status_code == 200
+            data_shallow = resp_shallow.json()
+            assert data_shallow["status"] == "ok"
+            assert data_shallow["shallow"] is True
+            assert "upstream_reachable" not in data_shallow
         finally:
             await client_down.aclose()
             await upstream_down.aclose()

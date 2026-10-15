@@ -1,0 +1,27 @@
+# API Gatekeeper — Render Blueprint Configuration (Module M11)
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: api-gatekeeper
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    healthCheckPath: /_gk/health?shallow=1
+    autoDeploy: true
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true
+        sync: false
+      - key: GATEWAY_MODE
+        value: block
+      - key: DEMO_MODE
+        value: "true"
+      - key: CLIENT_IP_SOURCE
+        value: xff_first
+      - key: UPSTREAM_URL
+        value: http://127.0.0.1:9000
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: DATA_DIR
+        value: data

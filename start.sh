@@ -1,17 +1,33 @@
 #!/usr/bin/env bash
 set -e
 
-# Create data directory if needed (ephemeral on Render)
-mkdir -p "${DATA_DIR:-data}"
+echo "============================================================"
+echo "   API Gatekeeper - Cloud / Render Production Startup       "
+echo "============================================================"
 
-# Seed the demo database
+# 1. Ephemeral disk initialization
+export DATA_DIR="${DATA_DIR:-data}"
+mkdir -p "$DATA_DIR"
+echo "[+] Initialized DATA_DIR at: $DATA_DIR"
+
+# 2. Seed DemoShop database on boot
+echo "[*] Seeding DemoShop database..."
 python -m backend.seed
 
-# Start the backend on localhost only (not exposed to the internet)
+# 3. Start DemoShop backend (bound strictly to 127.0.0.1:9000, internal only)
+echo "[*] Starting internal backend on 127.0.0.1:9000..."
 uvicorn backend.app:app --host 127.0.0.1 --port 9000 &
 
-# Wait for backend to become ready
-sleep 2
+# 4. Wait for internal backend readiness
+echo "[*] Waiting for backend readiness..."
+for i in $(seq 1 20); do
+    if python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9000/api/health', timeout=1)" >/dev/null 2>&1; then
+        echo "[+] DemoShop backend is healthy."
+        break
+    fi
+    sleep 0.5
+done
 
-# Start the gateway on all interfaces (Render provides $PORT)
+# 5. Start API Gatekeeper on $PORT (listens publicly on 0.0.0.0)
+echo "[*] Starting API Gatekeeper on 0.0.0.0:${PORT:-8000}..."
 exec uvicorn gateway.main:app --host 0.0.0.0 --port "${PORT:-8000}"

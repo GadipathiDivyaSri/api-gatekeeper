@@ -122,8 +122,21 @@ def create_app(
     # -------------------------------------------------------------------------
 
     @app.get("/_gk/health", tags=["Control Plane"], summary="Gateway and upstream health check")
-    async def health_check() -> JSONResponse:
-        """Check gateway status and reachability of configured upstream service."""
+    async def health_check(shallow: int = 0) -> JSONResponse:
+        """
+        Check gateway status and reachability of configured upstream service.
+        If ?shallow=1, answers immediately (< 5ms) without touching upstream.
+        """
+        if shallow == 1:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "ok",
+                    "mode": app.state.config.mode,
+                    "shallow": True,
+                },
+            )
+
         client: httpx.AsyncClient = app.state.http_client
         upstream_url = app.state.config.upstream_url.rstrip("/")
         reachable = False
