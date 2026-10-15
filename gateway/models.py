@@ -38,6 +38,7 @@ class Decision:
     findings: list[Finding] = field(default_factory=list)
     status_code: int = 200
     reason: str = ""
+    retry_after: int | None = None
 
 
 @dataclass

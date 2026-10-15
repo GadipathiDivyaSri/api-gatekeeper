@@ -1,7 +1,7 @@
 """
-API Gatekeeper Main Application (Modules M2 & M3).
+API Gatekeeper Main Application (Modules M2, M3 & M4).
 FastAPI application factory, lifespan client management, health check endpoint,
-pure security inspection pipeline, and transparent reverse proxy catch-all route.
+rate limiting & ban enforcement, security inspection pipeline, and reverse proxy.
 """
 
 from __future__ import annotations
@@ -19,6 +19,7 @@ from gateway.config import GatewayConfig, get_config
 from gateway.models import RequestContext
 from gateway.pipeline import inspect
 from gateway.proxy import proxy_forward
+from gateway.ratelimit import BanManager, RateLimiter, get_ban_manager, get_rate_limiter
 from gateway.rules import RuleManager, get_rule_manager
 
 
@@ -54,6 +55,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     client = httpx.AsyncClient(timeout=10.0, follow_redirects=False)
     app.state.http_client = client
     app.state.rule_manager = get_rule_manager()
+    app.state.rate_limiter = get_rate_limiter(app.state.config)
+    app.state.ban_manager = get_ban_manager(app.state.config)
     yield
     await client.aclose()
 
@@ -61,10 +64,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app(
     config: GatewayConfig | None = None,
     rule_manager: RuleManager | None = None,
+    rate_limiter: RateLimiter | None = None,
+    ban_manager: BanManager | None = None,
 ) -> FastAPI:
     """Application factory for API Gatekeeper."""
     app_config = config or get_config()
     active_rules = rule_manager or get_rule_manager()
+    active_rl = rate_limiter or get_rate_limiter(app_config)
+    active_bans = ban_manager or get_ban_manager(app_config)
 
     app = FastAPI(
         title="API Gatekeeper",
@@ -74,6 +81,8 @@ def create_app(
     )
     app.state.config = app_config
     app.state.rule_manager = active_rules
+    app.state.rate_limiter = active_rl
+    app.state.ban_manager = active_bans
 
     # -------------------------------------------------------------------------
     # Control Plane Endpoints
@@ -161,14 +170,42 @@ def create_app(
             content_type=content_type,
         )
 
-        # Pure inspection pipeline
+        # Pure inspection pipeline (ban check -> rate limit -> signatures -> scoring)
         decision = inspect(
             ctx,
             config=app.state.config,
             rules_manager=app.state.rule_manager,
+            rate_limiter=app.state.rate_limiter,
+            ban_manager=app.state.ban_manager,
         )
 
-        # Block if decision warrants blocking
+        # Handle blocked / banned / rate_limited actions
+        if decision.action == "banned":
+            headers = {}
+            if decision.retry_after:
+                headers["retry-after"] = str(decision.retry_after)
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "error": "IP temporarily banned",
+                    "incident_id": incident_id,
+                },
+                headers=headers,
+            )
+
+        if decision.action == "rate_limited":
+            headers = {}
+            if decision.retry_after:
+                headers["retry-after"] = str(decision.retry_after)
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Too Many Requests",
+                    "incident_id": incident_id,
+                },
+                headers=headers,
+            )
+
         if decision.action == "blocked":
             return JSONResponse(
                 status_code=403,
