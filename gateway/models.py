@@ -23,6 +23,7 @@ class Finding:
     cwe: str = ""
     owasp: str = ""
     attack: str = ""
+    severity: str = "medium"
 
     def to_dict(self) -> dict[str, Any]:
         """Convert finding to dictionary representation."""

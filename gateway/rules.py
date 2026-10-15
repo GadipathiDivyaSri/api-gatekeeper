@@ -148,6 +148,7 @@ class RuleManager:
                             cwe=rule.cwe,
                             owasp=rule.owasp,
                             attack=rule.attack,
+                            severity=rule.severity,
                         )
                         break
 
