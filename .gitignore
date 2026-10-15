@@ -1,0 +1,23 @@
+# Virtual environment
+.venv/
+
+# Runtime data (SQLite, JSONL logs)
+data/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Database files
+*.db
+*.jsonl
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store

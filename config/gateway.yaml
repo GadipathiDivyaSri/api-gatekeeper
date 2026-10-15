@@ -1,0 +1,38 @@
+# API Gatekeeper — Gateway Configuration
+# Environment variables override these values (e.g. UPSTREAM_URL, GATEWAY_MODE, etc.)
+
+upstream_url: "http://127.0.0.1:9000"
+mode: block
+block_threshold: 5
+max_body_bytes: 1048576  # 1 MB
+
+rate_limit:
+  capacity: 20
+  refill_per_sec: 5
+
+login_rate_limit:
+  path_regex: '^/api/login$'
+  capacity: 5
+  refill_per_sec: 0.0833   # ~1 per 12 seconds
+
+strikes:
+  window_sec: 60
+  ban_threshold: 3
+  ban_sec: 120
+  rate_limited_per_strike: 20
+
+contract:
+  enabled: true
+  strict_extra_fields: true
+  unknown_query_param_score: 2
+  sensitive_fields:
+    - role
+    - is_admin
+    - isAdmin
+    - admin
+    - balance
+    - price
+    - permissions
+    - verified
+
+client_ip_source: socket

@@ -1,0 +1,216 @@
+# API Gatekeeper — Signature Rules
+# Fields: id, name, category, pattern (Python regex), targets, score, severity, cwe, owasp, attack, enabled
+# Scoring: critical=5, high=4, medium=3, low=2; BLOCK_THRESHOLD=5
+# Patterns use Python regex syntax, single-quoted in YAML.
+# Targets: path | query | body | headers | ua
+
+rules:
+  # ── SQL Injection (CWE-89) ──────────────────────────────────────────────
+
+  - id: SQLI-001
+    name: Union-based SQL injection
+    category: sqli
+    pattern: '(?i)\bunion\b[\s/\*]+(?:all\s+)?select\b'
+    targets: [query, body, headers]
+    score: 5
+    severity: critical
+    cwe: CWE-89
+    owasp: "A03:2021"
+    attack: SQL injection (union-based)
+    enabled: true
+
+  - id: SQLI-002
+    name: SQL tautology / always-true condition
+    category: sqli
+    pattern: '(?i)\b(?:or|and)\b\s+(?:\d+\s*=\s*\d+|''[^'']{0,20}''\s*=\s*''[^'']{0,20}'')'
+    targets: [query, body]
+    score: 5
+    severity: critical
+    cwe: CWE-89
+    owasp: "A03:2021"
+    attack: SQL injection (tautology)
+    enabled: true
+
+  - id: SQLI-003
+    name: Stacked queries / dangerous SQL statements
+    category: sqli
+    pattern: '(?i)(?:;\s*(?:drop|delete|insert|update|alter|exec|create|truncate)\b|\b(?:drop|alter|truncate)\s+(?:table|database|column|index)\b)'
+    targets: [query, body]
+    score: 5
+    severity: critical
+    cwe: CWE-89
+    owasp: "A03:2021"
+    attack: SQL injection (stacked queries)
+    enabled: true
+
+  - id: SQLI-004
+    name: Blind SQL injection techniques
+    category: sqli
+    pattern: '(?i)(?:''\s*(?:--|#)|\b(?:sleep|benchmark|waitfor)\s*\(|\bextractvalue\s*\(|\bupdatexml\s*\()'
+    targets: [query, body]
+    score: 4
+    severity: high
+    cwe: CWE-89
+    owasp: "A03:2021"
+    attack: SQL injection (blind/time-based)
+    enabled: true
+
+  # ── NoSQL Injection (CWE-943) ───────────────────────────────────────────
+
+  - id: NOSQL-001
+    name: NoSQL operator injection
+    category: nosql
+    pattern: '(?i)\$(?:ne|eq|gt|gte|lt|lte|in|nin|regex|exists|where|or|and|not)\b'
+    targets: [query, body]
+    score: 5
+    severity: critical
+    cwe: CWE-943
+    owasp: "A03:2021"
+    attack: NoSQL operator injection
+    enabled: true
+
+  # ── Cross-Site Scripting (CWE-79) ───────────────────────────────────────
+
+  - id: XSS-001
+    name: Script tag injection
+    category: xss
+    pattern: '(?i)<\s*/?script[\s>]'
+    targets: [query, body, headers]
+    score: 5
+    severity: critical
+    cwe: CWE-79
+    owasp: "A03:2021"
+    attack: Cross-site scripting (script tag)
+    enabled: true
+
+  - id: XSS-002
+    name: Event handler / javascript URI
+    category: xss
+    pattern: '(?i)\bon[a-z]{2,20}\s*=|javascript\s*:|vbscript\s*:'
+    targets: [query, body, headers]
+    score: 4
+    severity: high
+    cwe: CWE-79
+    owasp: "A03:2021"
+    attack: Cross-site scripting (event handler)
+    enabled: true
+
+  - id: XSS-003
+    name: Dangerous HTML tags in API context
+    category: xss
+    pattern: '(?i)<\s*(?:img|svg|iframe|object|embed|form|base|link|meta|body|style|video|audio|input|button|textarea|marquee|details|math)\b'
+    targets: [query, body]
+    score: 3
+    severity: medium
+    cwe: CWE-79
+    owasp: "A03:2021"
+    attack: Cross-site scripting (HTML injection)
+    enabled: true
+
+  # ── OS Command Injection (CWE-78) ──────────────────────────────────────
+
+  - id: CMDI-001
+    name: Command chaining with dangerous commands
+    category: cmdi
+    pattern: '(?:;|&&|\|{1,2})\s*(?:cat|ls|id|whoami|pwd|uname|curl|wget|bash|sh|nc|ncat|cmd|powershell|ping|nslookup|ifconfig|ipconfig|rm|chmod|chown|kill|ps|env|net|dir|echo|type|more|find|grep)\b'
+    targets: [query, body, headers]
+    score: 5
+    severity: critical
+    cwe: CWE-78
+    owasp: "A03:2021"
+    attack: OS command injection (chaining)
+    enabled: true
+
+  - id: CMDI-002
+    name: Command substitution
+    category: cmdi
+    pattern: '\$\([^)]{0,100}\)|`[^`]{0,100}`'
+    targets: [query, body, headers]
+    score: 5
+    severity: critical
+    cwe: CWE-78
+    owasp: "A03:2021"
+    attack: OS command injection (substitution)
+    enabled: true
+
+  # ── Path Traversal (CWE-22) ────────────────────────────────────────────
+
+  - id: TRAV-001
+    name: Path traversal sequences
+    category: traversal
+    pattern: '(?:\.\./|\.\.\\){1,10}'
+    targets: [path, query]
+    score: 5
+    severity: critical
+    cwe: CWE-22
+    owasp: "A01:2021"
+    attack: Path traversal
+    enabled: true
+
+  # ── SSRF (CWE-918) ─────────────────────────────────────────────────────
+
+  - id: SSRF-001
+    name: SSRF to internal / metadata addresses
+    category: ssrf
+    pattern: '(?i)(?:https?|gopher|dict|ftp)://(?:127\.|10\.|172\.(?:1[6-9]|2\d|3[01])\.|192\.168\.|0\.0\.0\.0|\[::1?\]|169\.254\.169\.254|metadata\.google)'
+    targets: [query, body, headers]
+    score: 5
+    severity: critical
+    cwe: CWE-918
+    owasp: "A10:2021"
+    attack: Server-side request forgery
+    enabled: true
+
+  # ── Log4Shell / JNDI (CWE-917) ─────────────────────────────────────────
+
+  - id: JNDI-001
+    name: Log4Shell JNDI lookup
+    category: jndi
+    pattern: '(?i)\$\{[^}]{0,40}jndi\s*:'
+    targets: [query, body, headers, ua]
+    score: 5
+    severity: critical
+    cwe: CWE-917
+    owasp: "A03:2021"
+    attack: Log4Shell / JNDI injection
+    enabled: true
+
+  # ── Bot / Scanner Detection (CWE-200) ──────────────────────────────────
+
+  - id: BOT-001
+    name: Known security scanner User-Agent
+    category: bot
+    pattern: '(?i)(?:nikto|sqlmap|nmap|masscan|nessus|acunetix|burpsuite|dirbuster|gobuster|wfuzz|hydra|metasploit|zgrab|nuclei|havij|w3af)'
+    targets: [ua]
+    score: 4
+    severity: high
+    cwe: CWE-200
+    owasp: "A05:2021"
+    attack: Security scanner detection
+    enabled: true
+
+  - id: BOT-002
+    name: Empty or minimal User-Agent
+    category: bot
+    pattern: '^.{0,2}$'
+    targets: [ua]
+    score: 2
+    severity: low
+    cwe: CWE-200
+    owasp: "A05:2021"
+    attack: Suspicious client (empty UA)
+    enabled: true
+
+  # ── Protocol Manipulation (CWE-113) ────────────────────────────────────
+
+  - id: PROTO-001
+    name: HTTP response splitting / CRLF injection
+    category: protocol
+    pattern: '(?:%0[da]|\\r|\\n){1,4}[\w-]{2,30}\s*:'
+    targets: [query, body, headers]
+    score: 4
+    severity: high
+    cwe: CWE-113
+    owasp: "A03:2021"
+    attack: HTTP response splitting
+    enabled: true
