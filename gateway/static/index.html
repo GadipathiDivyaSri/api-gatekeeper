@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>API Gatekeeper — Security Gateway & Attack Defense</title>
+  <title>API Gatekeeper — Security Operations Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/_gk/static/styles.css">
   <script src="/_gk/static/vendor/chart.umd.js"></script>
 </head>
@@ -12,314 +15,400 @@
   <!-- Accessible Skip Navigation Link -->
   <a href="#main-content" class="skip-link">Skip to main content</a>
 
-  <!-- Top Bar / Command Navigation -->
-  <header class="top-bar" role="banner">
-    <div class="brand-section">
-      <div class="logo-shield" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V6.3l7-3.12zM12 6a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V7a1 1 0 0 0-1-1zm0 8a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 12 14z"/></svg>
+  <!-- 1. Fixed Top Navigation Bar -->
+  <header class="top-nav" role="banner">
+    <!-- Left: Logo & Wordmark -->
+    <a href="#tab-overview" class="nav-brand" aria-label="API Gatekeeper Home">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V6.3l7-3.12zM12 6a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V7a1 1 0 0 0-1-1zm0 8a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 12 14z"/>
+        </svg>
       </div>
-      <div class="brand-text">
-        <h1>API GATEKEEPER</h1>
-        <span class="brand-badge">LIVE DEFENSE</span>
-      </div>
-    </div>
+      <span class="brand-title">API GATEKEEPER</span>
+    </a>
 
-    <div class="header-controls">
-      <div class="status-indicator" role="status" aria-live="polite">
+    <!-- Center: Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist" aria-label="Console Views">
+      <button class="nav-tab-btn active" role="tab" aria-selected="true" id="nav-tab-overview" data-tab="tab-overview">
+        Overview
+      </button>
+      <button class="nav-tab-btn" role="tab" aria-selected="false" id="nav-tab-feed" data-tab="tab-feed">
+        Live Feed
+        <span class="tab-badge" id="feed-count-badge">0</span>
+      </button>
+      <button class="nav-tab-btn" role="tab" aria-selected="false" id="nav-tab-log" data-tab="tab-log">
+        Attack Log
+      </button>
+      <button class="nav-tab-btn" role="tab" aria-selected="false" id="nav-tab-test" data-tab="tab-test">
+        Test
+      </button>
+    </nav>
+
+    <!-- Right: Telemetry Status, Uptime, Mode & Action Buttons -->
+    <div class="nav-controls">
+      <!-- Status Indicator & Uptime -->
+      <div class="status-indicator" role="status" aria-live="polite" title="WebSocket Live Telemetry">
         <div id="connection-dot" class="status-dot"></div>
-        <span id="connection-text">CONNECTING...</span>
+        <span id="connection-text">Active</span>
+        <span id="uptime-counter" class="uptime-counter">00:00:00</span>
       </div>
 
-      <button id="mode-btn" class="mode-toggle-btn" aria-label="Toggle gateway defense mode, currently BLOCK" title="Toggle between Block and Monitor mode">
-        MODE: <span id="mode-label">BLOCK</span>
+      <!-- Mode Toggle Segmented Button -->
+      <button id="mode-btn" class="mode-toggle-btn" aria-label="Toggle defense mode" title="Click to toggle between BLOCK and MONITOR defense mode">
+        <span>MODE:</span>
+        <span id="mode-label" class="mode-label block">BLOCK</span>
       </button>
 
-      <div class="btn-group" role="group" aria-label="Gateway Actions">
-        <button id="btn-simulate" class="btn btn-primary" aria-label="Trigger Attack Simulator" title="Trigger Attack Simulator">
-          ⚡ Run Simulator
-        </button>
-        <button id="btn-scorecard" class="btn" aria-label="Run Benchmark Scorecard" title="Run Benchmark Scorecard">
-          📊 Run Scorecard
-        </button>
-        <a id="btn-export-csv" class="btn" href="/_gk/api/export.csv" download="gatekeeper_events.csv" aria-label="Download Security Audit CSV" title="Download Audit CSV">
-          📥 Export CSV
-        </a>
-      </div>
+      <!-- Persistent Attack Simulator Button -->
+      <button id="btn-simulate" class="btn btn-primary" aria-label="Run Attack Simulator" title="Trigger background multi-vector attack simulation">
+        Run Attack Simulator
+      </button>
+
+      <!-- Benchmark Scorecard Button -->
+      <button id="btn-scorecard" class="btn btn-secondary" aria-label="Run Scorecard Benchmark" title="Run hold-out benchmark scorecard">
+        Scorecard
+      </button>
     </div>
   </header>
 
-  <!-- Dashboard Main Container -->
-  <main class="dashboard-container" id="main-content" role="main">
+  <!-- Main Container -->
+  <main class="main-wrapper" id="main-content" role="main">
 
-    <!-- 1. KPI Metric Cards (8 cards) -->
-    <section class="kpi-grid">
-      <div class="kpi-card" id="kpi-total">
-        <span class="kpi-title">Total Requests</span>
-        <span class="kpi-value" id="val-total">0</span>
-        <span class="kpi-sub">All inspected traffic</span>
-      </div>
-
-      <div class="kpi-card blocked" id="kpi-blocked">
-        <span class="kpi-title">Blocked Attacks</span>
-        <span class="kpi-value" id="val-blocked">0</span>
-        <span class="kpi-sub"><span id="val-block-rate">0.0</span>% block rate</span>
-      </div>
-
-      <div class="kpi-card ratelimit" id="kpi-ratelimit">
-        <span class="kpi-title">Rate Limited</span>
-        <span class="kpi-value" id="val-ratelimit">0</span>
-        <span class="kpi-sub">429 throttle events</span>
-      </div>
-
-      <div class="kpi-card allowed" id="kpi-allowed">
-        <span class="kpi-title">Allowed Requests</span>
-        <span class="kpi-value" id="val-allowed">0</span>
-        <span class="kpi-sub">Forwarded clean traffic</span>
-      </div>
-
-      <div class="kpi-card purple" id="kpi-reached-backend">
-        <span class="kpi-title">Reached Backend</span>
-        <span class="kpi-value" id="val-reached-backend">0</span>
-        <span class="kpi-sub">Forwarded upstream</span>
-      </div>
-
-      <div class="kpi-card" id="kpi-attackers">
-        <span class="kpi-title">Unique Attackers</span>
-        <span class="kpi-value" id="val-attackers">0</span>
-        <span class="kpi-sub"><span id="val-unique-ips">0</span> total client IPs</span>
-      </div>
-
-      <div class="kpi-card cyan" id="kpi-bans">
-        <span class="kpi-title">Active IP Bans</span>
-        <span class="kpi-value" id="val-bans">0</span>
-        <span class="kpi-sub">Strikes auto-ban</span>
-      </div>
-
-      <div class="kpi-card" id="kpi-latency">
-        <span class="kpi-title">p95 Latency</span>
-        <span class="kpi-value" id="val-latency">0.0<span style="font-size: 1rem;">ms</span></span>
-        <span class="kpi-sub">p50: <span id="val-latency-p50">0.0</span>ms</span>
-      </div>
-    </section>
-
-    <!-- Mode Comparison Before/After Banner (Last 60 seconds) -->
-    <section id="mode-comparison-banner" class="mode-comparison-banner block-mode">
-      <div class="banner-mode-header">
-        <div class="banner-pill" id="banner-mode-pill">
-          <span class="pulse-dot"></span>
-          <span id="banner-mode-text">BLOCK MODE ACTIVE</span>
-        </div>
-        <span class="banner-window-tag">Rolling 60s Traffic Window</span>
-      </div>
-
-      <div class="banner-stats-row">
-        <div class="banner-stat-box">
-          <span class="stat-number" id="banner-total-60s">0</span>
-          <span class="stat-label">Total Ingress (60s)</span>
-        </div>
-        <div class="banner-stat-box blocked">
-          <span class="stat-number text-red" id="banner-blocked-60s">0</span>
-          <span class="stat-label">Blocked at Perimeter</span>
-        </div>
-        <div class="banner-stat-box flagged">
-          <span class="stat-number text-yellow" id="banner-flagged-60s">0</span>
-          <span class="stat-label">Flagged (Monitor)</span>
-        </div>
-        <div class="banner-stat-box reached">
-          <span class="stat-number text-cyan" id="banner-reached-60s">0</span>
-          <span class="stat-label">Reached Backend (60s)</span>
-        </div>
-      </div>
-
-      <div class="banner-insight" id="banner-insight-text">
-        🛡️ <strong>Perimeter Defense Enforced:</strong> All attacks meeting threat score threshold are intercepted at the gateway (HTTP 403) and dropped before reaching DemoShop.
-      </div>
-    </section>
-
-    <!-- 2. Visual Charts (Doughnut & Timeline) -->
-    <section class="charts-grid">
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">🛡️ Attack Categories</h2>
-        </div>
-        <div class="chart-container">
-          <canvas id="categoryChart"></canvas>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">📈 Live Traffic Timeline (Allowed vs Blocked)</h2>
-          <span style="font-size: 0.75rem; color: var(--text-dim);">10-second buckets</span>
-        </div>
-        <div class="chart-container">
-          <canvas id="timelineChart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. Main Grid: Live Feed & Intelligence -->
-    <section class="main-grid" aria-label="Live Security Intelligence">
-      <!-- Left Column: Live Attack Feed -->
-      <div class="panel">
-        <div class="panel-header">
-          <h2 class="panel-title">⚡ Live Security Event Stream</h2>
-          <span style="font-size: 0.75rem; color: var(--text-dim);" id="feed-count">Showing latest events</span>
-        </div>
-        <div id="attack-feed" class="feed-list" role="region" aria-label="Live Security Event Stream" aria-live="polite">
-          <!-- Feed items injected dynamically -->
-          <div style="text-align: center; color: var(--text-dim); padding: 2rem;">Awaiting incoming requests...</div>
-        </div>
-      </div>
-
-      <!-- Right Column: Top Attackers & Active Bans -->
-      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-        
-        <!-- Top Attackers -->
-        <div class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">🎯 Top Attackers (IP Leaderboard)</h2>
+    <!-- ===================================================================== -->
+    <!-- 2. OVERVIEW SECTION (DEFAULT VISIBLE TAB)                              -->
+    <!-- ===================================================================== -->
+    <section id="tab-overview" class="tab-section active" role="tabpanel" aria-labelledby="nav-tab-overview">
+      
+      <!-- Row of 4 Stat Cards -->
+      <div class="stats-grid" aria-label="Key Performance Indicators">
+        <!-- Card 1: Total Requests -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-label">Total Requests</span>
+            <span class="stat-trend neutral">→ Ingress</span>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">IP Address</th>
-                <th scope="col">Attacks</th>
-                <th scope="col">Categories</th>
-                <th scope="col">Last Seen</th>
-              </tr>
-            </thead>
-            <tbody id="attackers-tbody">
-              <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">No attackers recorded yet</td></tr>
-            </tbody>
-          </table>
+          <div class="stat-value" id="val-total">0</div>
+          <div class="stat-subtext">Total requests inspected at gateway</div>
         </div>
 
-        <!-- Active Bans -->
-        <div class="panel">
-          <div class="panel-header">
-            <h2 class="panel-title">🚫 Active Temporary Bans</h2>
-            <span id="bans-badge" class="badge badge-ban">0 ACTIVE</span>
+        <!-- Card 2: Blocked Attacks -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-label">Blocked</span>
+            <span class="stat-trend danger">▲ <span id="val-block-rate">0.0</span>% rate</span>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">IP Address</th>
-                <th scope="col">Reason</th>
-                <th scope="col">Remaining</th>
-                <th scope="col">Action</th>
-              </tr>
-            </thead>
-            <tbody id="bans-tbody">
-              <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">No active bans</td></tr>
-            </tbody>
-          </table>
+          <div class="stat-value" id="val-blocked" style="color: var(--sev-critical);">0</div>
+          <div class="stat-subtext">Malicious requests intercepted &amp; dropped</div>
         </div>
 
-      </div>
-    </section>
+        <!-- Card 3: Allowed Requests -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-label">Allowed</span>
+            <span class="stat-trend positive">✓ Forwarded</span>
+          </div>
+          <div class="stat-value" id="val-allowed" style="color: var(--sev-allowed);">0</div>
+          <div class="stat-subtext">Legitimate clean traffic forwarded</div>
+        </div>
 
-    <!-- 4. Interactive Payload Tester (Dry-Run Inspection) -->
-    <section class="panel" aria-labelledby="tester-heading">
-      <div class="panel-header">
-        <h2 class="panel-title" id="tester-heading">🧪 Interactive Payload Tester (Dry-Run Inspection)</h2>
-        <span style="font-size: 0.75rem; color: var(--text-dim);">Pure inspection • Never forwarded</span>
+        <!-- Card 4: Unique IPs -->
+        <div class="stat-card">
+          <div class="stat-card-header">
+            <span class="stat-label">Unique IPs</span>
+            <span class="stat-trend neutral">● Client IPs</span>
+          </div>
+          <div class="stat-value" id="val-unique-ips">0</div>
+          <div class="stat-subtext">Distinct client addresses observed</div>
+        </div>
       </div>
 
-      <div class="tester-grid">
-        <form id="tester-form" onsubmit="return false;">
-          <div class="form-group">
-            <label for="test-method">HTTP Method & Path</label>
-            <div class="input-row">
-              <select id="test-method" class="select-field" style="width: 100px;" aria-label="HTTP Method">
-                <option value="GET">GET</option>
-                <option value="POST">POST</option>
-                <option value="PUT">PUT</option>
-                <option value="DELETE">DELETE</option>
-                <option value="PATCH">PATCH</option>
-              </select>
-              <input type="text" id="test-path" class="input-field" style="flex: 1;" value="/api/products" placeholder="/api/products" aria-label="Request Path">
+      <!-- Secondary Preserved Hidden Metrics (Maintains Zero-Regression DOM Interface) -->
+      <div style="display: none;" aria-hidden="true">
+        <span id="val-ratelimit">0</span>
+        <span id="val-reached-backend">0</span>
+        <span id="val-attackers">0</span>
+        <span id="val-bans">0</span>
+        <span id="val-latency">0.0</span>
+        <span id="val-latency-p50">0.0</span>
+      </div>
+
+      <!-- Row of 2 Charts Side-by-Side: Pie (Attack Types) + Line (Blocks/min) -->
+      <div class="charts-grid" aria-label="Visual Analytics">
+        <!-- Pie/Doughnut Chart: Attack Types -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Attack Types Distribution</h2>
+              <span class="chart-subtitle">OWASP Top 10 &amp; CWE taxonomy classification</span>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Line Chart: Throughput / Blocks per Minute -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <div>
+              <h2 class="chart-title">Traffic Velocity (Blocks / Min)</h2>
+              <span class="chart-subtitle">Time-series histogram of clean vs blocked traffic</span>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Below Charts: Two-Panel View (Unprotected vs Protected) -->
+      <section class="two-panel-section" id="mode-comparison-banner" aria-label="Two-Panel Defense Comparison">
+        <div class="section-heading-row">
+          <h2 class="section-heading">Live Defense Architecture: Unprotected vs Protected</h2>
+          <div id="banner-mode-pill" style="display: none;"><span id="banner-mode-text">BLOCK MODE</span></div>
+        </div>
+
+        <div class="two-panel-grid">
+          <!-- Left Panel: Unprotected -->
+          <div class="panel-card unprotected">
+            <div class="panel-header">
+              <div class="panel-title">
+                Without Gatekeeper (Unprotected Upstream)
+              </div>
+              <span class="panel-badge danger">EXPOSED</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+              All incoming requests directly reach backend business logic and database. Zero inspection, zero contract enforcement, and zero strike-based rate limiting.
+            </p>
+            <div class="panel-metrics-row">
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Attacks Blocked</span>
+                <span class="panel-metric-value danger">0</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Backend Vulnerability</span>
+                <span class="panel-metric-value danger">100%</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Perimeter Filter</span>
+                <span class="panel-metric-value danger">None</span>
+              </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="test-query">Query String</label>
-            <input type="text" id="test-query" class="input-field" value="search=' UNION SELECT 1,2,3--" placeholder="search=phone">
+          <!-- Right Panel: Protected -->
+          <div class="panel-card protected">
+            <div class="panel-header">
+              <div class="panel-title">
+                With API Gatekeeper (Protected Reverse Proxy)
+              </div>
+              <span class="panel-badge success">ACTIVE SHIELD</span>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+              Sub-millisecond multi-stage normalizer, regex signature matcher, and positive OpenAPI contract guard intercept malicious traffic before it ever touches upstream services.
+            </p>
+            <div class="panel-metrics-row">
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Inspected (60s)</span>
+                <span class="panel-metric-value" id="banner-total-60s">0</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Blocked at Edge</span>
+                <span class="panel-metric-value danger" id="banner-blocked-60s">0</span>
+              </div>
+              <div class="panel-metric-item">
+                <span class="panel-metric-label">Clean to Backend</span>
+                <span class="panel-metric-value success" id="banner-reached-60s">0</span>
+              </div>
+            </div>
+            <!-- Preserved hidden metric for flagged count -->
+            <span id="banner-flagged-60s" style="display: none;">0</span>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label for="test-headers">Custom Headers (JSON)</label>
-            <textarea id="test-headers" class="textarea-field" placeholder='{"User-Agent": "Mozilla/5.0"}'></textarea>
+        <div class="panel-card" style="margin-top: 14px; padding: 12px 16px; background: rgba(17, 24, 39, 0.5);">
+          <div id="banner-insight-text" style="font-size: 13px; color: var(--text-muted);">
+            Perimeter Defense Enforced: All attacks meeting threat score threshold are intercepted at Gatekeeper (HTTP 403) and dropped before reaching DemoShop.
           </div>
+        </div>
+      </section>
 
-          <div class="form-group">
-            <label for="test-body">Request Body</label>
-            <textarea id="test-body" class="textarea-field" placeholder='{"$ne": 1, "comment": "<script>alert(1)</script>"}'></textarea>
-          </div>
+    </section>
 
-          <button id="btn-inspect-test" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;" aria-label="Inspect Payload in dry-run mode">
-            🔍 Inspect Payload
-          </button>
-        </form>
+    <!-- ===================================================================== -->
+    <!-- 3. LIVE FEED SECTION (TAB)                                            -->
+    <!-- ===================================================================== -->
+    <section id="tab-feed" class="tab-section" role="tabpanel" aria-labelledby="nav-tab-feed">
+      <div class="feed-header-bar">
+        <div class="feed-title-wrap">
+          <h2 class="section-heading">Live Security Event Stream</h2>
+          <span id="feed-count" class="feed-counter">0 events</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary filter-chip active" data-filter="all">All Events</button>
+          <button class="btn btn-secondary filter-chip" data-filter="critical">Critical</button>
+          <button class="btn btn-secondary filter-chip" data-filter="high">High</button>
+          <button class="btn btn-secondary filter-chip" data-filter="medium">Medium</button>
+          <button class="btn btn-secondary filter-chip" data-filter="allowed">Allowed</button>
+        </div>
+      </div>
 
-        <!-- Test Results Area -->
-        <div id="test-results" class="test-results" role="region" aria-label="Test Inspection Results" aria-live="polite">
-          <div style="color: var(--text-dim); text-align: center; padding-top: 2rem;">
-            Run a test to inspect decision, score, matched rules, and multi-decode chains.
-          </div>
+      <!-- Full-Width Scrolling Feed Container -->
+      <div id="attack-feed" class="feed-list" role="region" aria-label="Real-time live attack stream" aria-live="polite">
+        <div style="text-align: center; color: var(--text-sub); padding: 48px 24px; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border-color);">
+          Awaiting incoming requests. Run the Attack Simulator to view live intercepted attack cards.
         </div>
       </div>
     </section>
 
-    <!-- 5. Signature Rules & Policy Controls Panel -->
-    <section class="panel" id="rules-panel" style="margin-top: 1.5rem;" aria-labelledby="rules-heading">
-      <div class="panel-header">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <h2 class="panel-title" id="rules-heading">🛡️ Signature Rules & Policy Controls</h2>
-          <span id="rules-count-badge" class="badge badge-cyan">0 RULES</span>
+    <!-- ===================================================================== -->
+    <!-- 4. ATTACK LOG SECTION (TAB)                                           -->
+    <!-- ===================================================================== -->
+    <section id="tab-log" class="tab-section" role="tabpanel" aria-labelledby="nav-tab-log">
+      <!-- Filter Toolbar -->
+      <div class="filter-toolbar">
+        <div class="filter-group-left">
+          <input type="text" id="log-search-input" class="search-input" placeholder="Search by IP, path, rule, or attack type..." aria-label="Search attack history">
+          <select id="log-severity-select" class="filter-select" aria-label="Filter by severity">
+            <option value="all">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="info">Info</option>
+            <option value="allowed">Allowed</option>
+          </select>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <label for="rule-search-input" class="sr-only">Filter signature rules</label>
-          <input type="text" id="rule-search-input" class="input-field" style="padding: 6px 12px; font-size: 0.8rem; width: 220px;" placeholder="Filter rules by name or category..." aria-label="Filter signature rules">
-          <button id="btn-reload-rules" class="btn" title="Reload rules from config/rules.yaml and refresh OpenAPI spec" aria-label="Hot reload signature rules">
-            🔄 Hot Reload Rules
-          </button>
-        </div>
+        <a id="btn-export-csv" class="btn btn-primary" href="/_gk/api/export.csv" download="gatekeeper_events.csv" aria-label="Download Security Audit Log CSV">
+          Download CSV
+        </a>
       </div>
-      <div class="rules-table-container">
-        <table class="data-table">
+
+      <!-- Table View of Blocks from History -->
+      <div class="table-scroll-container">
+        <table class="data-table" id="attack-log-table">
           <thead>
             <tr>
-              <th scope="col" style="width: 140px;">Rule ID</th>
-              <th scope="col">Rule Name</th>
-              <th scope="col" style="width: 110px;">Category</th>
-              <th scope="col" style="width: 70px;">Score</th>
-              <th scope="col" style="width: 90px;">Severity</th>
-              <th scope="col" style="width: 100px; text-align: center;">Policy State</th>
+              <th scope="col" style="width: 140px;">Time</th>
+              <th scope="col" style="width: 130px;">IP</th>
+              <th scope="col">Path</th>
+              <th scope="col" style="width: 130px;">Attack</th>
+              <th scope="col" style="width: 160px;">Rule</th>
+              <th scope="col" style="width: 120px;">MITRE</th>
+              <th scope="col" style="width: 110px; text-align: center;">Severity</th>
             </tr>
           </thead>
-          <tbody id="rules-tbody">
-            <tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1.5rem;">Loading signature rules...</td></tr>
+          <tbody id="history-tbody">
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-sub); padding: 36px;">
+                Loading security event audit trail...
+              </td>
+            </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Preserved Hidden Tbodys to Maintain JS Compatibility with Top Attackers & Active Bans -->
+      <div style="display: none;" aria-hidden="true">
+        <table>
+          <tbody id="attackers-tbody"></tbody>
+          <tbody id="bans-tbody"></tbody>
+          <tbody id="rules-tbody"></tbody>
+        </table>
+        <span id="bans-badge">0</span>
+        <span id="rules-count-badge">0</span>
+        <input type="text" id="rule-search-input">
+        <button id="btn-reload-rules"></button>
+        <div id="rules-panel"></div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- 5. TEST SECTION (TAB)                                                 -->
+    <!-- ===================================================================== -->
+    <section id="tab-test" class="tab-section" role="tabpanel" aria-labelledby="nav-tab-test">
+      <div class="test-layout-grid">
+        <!-- Workbench Form Card -->
+        <div class="test-workbench-card">
+          <h2 class="section-heading" style="margin-bottom: 8px;">Dry-Run Security Inspector</h2>
+          <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">
+            Test custom request payloads through normalization and signature rules without altering backend state.
+          </p>
+
+          <form id="tester-form" onsubmit="return false;">
+            <div class="form-group">
+              <label for="test-method" class="form-label">HTTP Method &amp; Target Path</label>
+              <div class="form-row">
+                <select id="test-method" class="form-select" aria-label="HTTP Method">
+                  <option value="GET">GET</option>
+                  <option value="POST" selected>POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+                <input type="text" id="test-path" class="form-input" value="/api/feedback" placeholder="/api/products" aria-label="Request Path">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="test-query" class="form-label">Query String</label>
+              <input type="text" id="test-query" class="form-input" value="" placeholder="e.g. search=' UNION SELECT 1,2,3--">
+            </div>
+
+            <div class="form-group">
+              <label for="test-headers" class="form-label">Headers (JSON)</label>
+              <input type="text" id="test-headers" class="form-input" value='{"Content-Type": "application/json"}' placeholder='{"Content-Type": "application/json"}'>
+            </div>
+
+            <div class="form-group">
+              <label for="test-body" class="form-label">Payload Body</label>
+              <textarea id="test-body" class="form-textarea" placeholder="Enter custom SQLi, XSS, NoSQL, or CMDi payload here...">{
+  "product_id": 1,
+  "comment": "<script>alert('XSS-Test')</script>"
+}</textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="sqli" style="font-size: 11px; padding: 4px 8px;">SQLi</button>
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="xss" style="font-size: 11px; padding: 4px 8px;">XSS</button>
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="nosql" style="font-size: 11px; padding: 4px 8px;">NoSQL</button>
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="cmdi" style="font-size: 11px; padding: 4px 8px;">CMDi</button>
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="traversal" style="font-size: 11px; padding: 4px 8px;">Traversal</button>
+              <button type="button" class="btn btn-secondary preset-btn" data-preset="clean" style="font-size: 11px; padding: 4px 8px;">Clean</button>
+            </div>
+
+            <button id="btn-inspect-test" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px 16px;" aria-label="Test Payload">
+              Test Payload
+            </button>
+          </form>
+        </div>
+
+        <!-- Result Card -->
+        <div class="test-result-card">
+          <h2 class="section-heading" style="margin-bottom: 16px;">Inspection Verdict</h2>
+          <div id="test-results" class="test-results-container" role="region" aria-label="Test Inspection Verdict" aria-live="polite">
+            <div style="text-align: center; color: var(--text-sub); padding: 48px 16px;">
+              Enter a payload or choose a preset and click <strong>Test Payload</strong> to see the real-time detection decision, matched rules, and decoded representations.
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Slide-Out Forensic Incident Drawer -->
+  <!-- Slide-out Forensic Incident Drawer -->
   <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
-  <aside id="incident-drawer" class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
+  <aside id="incident-drawer" class="incident-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true">
     <div class="drawer-header">
-      <h3 id="drawer-title" style="font-size: 1rem; font-weight: 700; color: var(--accent-cyan);">INCIDENT FORENSICS</h3>
-      <button id="drawer-close-btn" class="drawer-close" aria-label="Close incident forensics drawer">&times;</button>
+      <h3 id="drawer-title" class="drawer-title">Incident Forensics</h3>
+      <button id="drawer-close-btn" class="drawer-close-btn" aria-label="Close forensics drawer">&times;</button>
     </div>
-    <div id="drawer-content" class="drawer-content">
-      <!-- Injected dynamically -->
+    <div id="drawer-content" class="drawer-body">
+      <!-- Populated dynamically on event card click -->
     </div>
   </aside>
 
-  <!-- Toast Notifications Container -->
+  <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Application Logic -->
