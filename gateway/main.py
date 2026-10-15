@@ -12,9 +12,12 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import AsyncGenerator
 
+from pathlib import Path
+
 import httpx
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from gateway.admin import admin_router
 from gateway.config import GatewayConfig, get_config
@@ -168,6 +171,23 @@ def create_app(
             ws_mgr.disconnect(websocket)
         except Exception:
             ws_mgr.disconnect(websocket)
+
+    # -------------------------------------------------------------------------
+    # Dashboard Static Assets & UI Page
+    # -------------------------------------------------------------------------
+
+    static_path = Path(__file__).parent / "static"
+    if static_path.is_dir():
+        app.mount("/_gk/static", StaticFiles(directory=str(static_path)), name="static")
+
+    @app.get("/_gk", include_in_schema=False)
+    @app.get("/_gk/", include_in_schema=False)
+    async def serve_dashboard() -> Response:
+        """Serve the live security defense dashboard."""
+        index_file = Path(__file__).parent / "static" / "index.html"
+        if index_file.is_file():
+            return FileResponse(str(index_file))
+        return JSONResponse({"error": "Dashboard template not found"}, status_code=404)
 
     # -------------------------------------------------------------------------
     # Catch-all Reverse Proxy Route (Registered LAST)

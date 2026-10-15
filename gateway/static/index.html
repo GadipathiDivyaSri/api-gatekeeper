@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Gatekeeper — Security Gateway & Attack Defense</title>
+  <link rel="stylesheet" href="/_gk/static/styles.css">
+  <script src="/_gk/static/vendor/chart.umd.js"></script>
+</head>
+<body>
+
+  <!-- Top Bar / Command Navigation -->
+  <header class="top-bar">
+    <div class="brand-section">
+      <div class="logo-shield">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 2.18l7 3.12v4.7c0 4.54-3.14 8.78-7 9.87-3.86-1.09-7-5.33-7-9.87V6.3l7-3.12zM12 6a1 1 0 0 0-1 1v4a1 1 0 0 0 2 0V7a1 1 0 0 0-1-1zm0 8a1.25 1.25 0 1 0 0 2.5A1.25 1.25 0 0 0 12 14z"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>API GATEKEEPER</h1>
+        <span class="brand-badge">LIVE DEFENSE</span>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="status-indicator">
+        <div id="connection-dot" class="status-dot"></div>
+        <span id="connection-text">CONNECTING...</span>
+      </div>
+
+      <button id="mode-btn" class="mode-toggle-btn" title="Toggle between Block and Monitor mode">
+        MODE: <span id="mode-label">BLOCK</span>
+      </button>
+
+      <div class="btn-group">
+        <button id="btn-simulate" class="btn btn-primary" title="Trigger Attack Simulator">
+          ⚡ Run Simulator
+        </button>
+        <button id="btn-scorecard" class="btn" title="Run Benchmark Scorecard">
+          📊 Run Scorecard
+        </button>
+        <a id="btn-export-csv" class="btn" href="/_gk/api/export.csv" download="gatekeeper_events.csv" title="Download Audit CSV">
+          📥 Export CSV
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Dashboard Main Container -->
+  <main class="dashboard-container">
+
+    <!-- 1. KPI Metric Cards (7 cards) -->
+    <section class="kpi-grid">
+      <div class="kpi-card" id="kpi-total">
+        <span class="kpi-title">Total Requests</span>
+        <span class="kpi-value" id="val-total">0</span>
+        <span class="kpi-sub">All inspected traffic</span>
+      </div>
+
+      <div class="kpi-card blocked" id="kpi-blocked">
+        <span class="kpi-title">Blocked Attacks</span>
+        <span class="kpi-value" id="val-blocked">0</span>
+        <span class="kpi-sub"><span id="val-block-rate">0.0</span>% block rate</span>
+      </div>
+
+      <div class="kpi-card ratelimit" id="kpi-ratelimit">
+        <span class="kpi-title">Rate Limited</span>
+        <span class="kpi-value" id="val-ratelimit">0</span>
+        <span class="kpi-sub">429 throttle events</span>
+      </div>
+
+      <div class="kpi-card allowed" id="kpi-allowed">
+        <span class="kpi-title">Allowed Requests</span>
+        <span class="kpi-value" id="val-allowed">0</span>
+        <span class="kpi-sub">Forwarded clean traffic</span>
+      </div>
+
+      <div class="kpi-card" id="kpi-attackers">
+        <span class="kpi-title">Unique Attackers</span>
+        <span class="kpi-value" id="val-attackers">0</span>
+        <span class="kpi-sub"><span id="val-unique-ips">0</span> total client IPs</span>
+      </div>
+
+      <div class="kpi-card cyan" id="kpi-bans">
+        <span class="kpi-title">Active IP Bans</span>
+        <span class="kpi-value" id="val-bans">0</span>
+        <span class="kpi-sub">Strikes auto-ban</span>
+      </div>
+
+      <div class="kpi-card" id="kpi-latency">
+        <span class="kpi-title">p95 Latency</span>
+        <span class="kpi-value" id="val-latency">0.0<span style="font-size: 1rem;">ms</span></span>
+        <span class="kpi-sub">p50: <span id="val-latency-p50">0.0</span>ms</span>
+      </div>
+    </section>
+
+    <!-- 2. Visual Charts (Doughnut & Timeline) -->
+    <section class="charts-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">🛡️ Attack Categories</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">📈 Live Traffic Timeline (Allowed vs Blocked)</h2>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">10-second buckets</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Main Grid: Live Feed & Intelligence -->
+    <section class="main-grid">
+      <!-- Left Column: Live Attack Feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">⚡ Live Security Event Stream</h2>
+          <span style="font-size: 0.75rem; color: var(--text-dim);" id="feed-count">Showing latest events</span>
+        </div>
+        <div id="attack-feed" class="feed-list">
+          <!-- Feed items injected dynamically -->
+          <div style="text-align: center; color: var(--text-dim); padding: 2rem;">Awaiting incoming requests...</div>
+        </div>
+      </div>
+
+      <!-- Right Column: Top Attackers & Active Bans -->
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Top Attackers -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">🎯 Top Attackers (IP Leaderboard)</h2>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>IP Address</th>
+                <th>Attacks</th>
+                <th>Categories</th>
+                <th>Last Seen</th>
+              </tr>
+            </thead>
+            <tbody id="attackers-tbody">
+              <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">No attackers recorded yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Active Bans -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2 class="panel-title">🚫 Active Temporary Bans</h2>
+            <span id="bans-badge" class="badge badge-ban">0 ACTIVE</span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>IP Address</th>
+                <th>Reason</th>
+                <th>Remaining</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="bans-tbody">
+              <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">No active bans</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. Interactive Payload Tester (Dry-Run Inspection) -->
+    <section class="panel">
+      <div class="panel-header">
+        <h2 class="panel-title">🧪 Interactive Payload Tester (Dry-Run Inspection)</h2>
+        <span style="font-size: 0.75rem; color: var(--text-dim);">Pure inspection • Never forwarded</span>
+      </div>
+
+      <div class="tester-grid">
+        <form id="tester-form" onsubmit="return false;">
+          <div class="form-group">
+            <label for="test-method">HTTP Method & Path</label>
+            <div class="input-row">
+              <select id="test-method" class="select-field" style="width: 100px;">
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="DELETE">DELETE</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+              <input type="text" id="test-path" class="input-field" style="flex: 1;" value="/api/products" placeholder="/api/products">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="test-query">Query String</label>
+            <input type="text" id="test-query" class="input-field" value="search=' UNION SELECT 1,2,3--" placeholder="search=phone">
+          </div>
+
+          <div class="form-group">
+            <label for="test-headers">Custom Headers (JSON)</label>
+            <textarea id="test-headers" class="textarea-field" placeholder='{"User-Agent": "Mozilla/5.0"}'></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="test-body">Request Body</label>
+            <textarea id="test-body" class="textarea-field" placeholder='{"$ne": 1, "comment": "<script>alert(1)</script>"}'></textarea>
+          </div>
+
+          <button id="btn-inspect-test" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;">
+            🔍 Inspect Payload
+          </button>
+        </form>
+
+        <!-- Test Results Area -->
+        <div id="test-results" class="test-results">
+          <div style="color: var(--text-dim); text-align: center; padding-top: 2rem;">
+            Run a test to inspect decision, score, matched rules, and multi-decode chains.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Slide-Out Forensic Incident Drawer -->
+  <div id="drawer-overlay" class="drawer-overlay"></div>
+  <aside id="incident-drawer" class="drawer">
+    <div class="drawer-header">
+      <h3 style="font-size: 1rem; font-weight: 700; color: var(--accent-cyan);">INCIDENT FORENSICS</h3>
+      <button id="drawer-close-btn" class="drawer-close">&times;</button>
+    </div>
+    <div id="drawer-content" class="drawer-content">
+      <!-- Injected dynamically -->
+    </div>
+  </aside>
+
+  <!-- Application Logic -->
+  <script src="/_gk/static/app.js"></script>
+</body>
+</html>
